@@ -17,6 +17,16 @@ from sklearn import metrics
 import seaborn as sns
 #plt.style.use('seaborn-deep')
 
+# set up logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("protodune_cosmic.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
 def load_array(
     input_file,
     array_name,
@@ -103,15 +113,6 @@ class NeutronCosmicDataset:
     def __init__(self,
         input_file,
     ):
-        # set up logger
-        logging.basicConfig(
-            level=logging.INFO,
-            format="[%(levelname)s] %(message)s",
-            handlers=[
-                logging.FileHandler("neutron_clustering.log"),
-                logging.StreamHandler(sys.stdout)
-            ]
-        )
         logging.info(f"Attempting to load file {input_file}.")
         # load the file
         try:
@@ -167,9 +168,9 @@ class NeutronCosmicDataset:
                     self.neutron_x[jj][ii],
                     self.neutron_y[jj][ii],
                     self.neutron_z[jj][ii]]
-                    for ii in range(len(self.x[jj]))
+                    for ii in range(len(self.neutron_x[jj]))
                 ], dtype=float)
-                for jj in range(len(self.x))
+                for jj in range(len(self.neutron_x))
             ], 
             dtype=object
         )
@@ -179,9 +180,9 @@ class NeutronCosmicDataset:
                     self.muon_edep_x[jj][ii],
                     self.muon_edep_y[jj][ii],
                     self.muon_edep_z[jj][ii]]
-                    for ii in range(len(self.x[jj]))
+                    for ii in range(len(self.muon_edep_x[jj]))
                 ], dtype=float)
-                for jj in range(len(self.x))
+                for jj in range(len(self.muon_edep_x))
             ], 
             dtype=object
         )
@@ -238,18 +239,18 @@ class NeutronCosmicDataset:
         fig = plt.figure(figsize=(8,6))
         axs = fig.add_subplot(projection='3d')
         axs.scatter3D(
-            self.neutron_x, 
-            self.neutron_y, 
-            self.neutron_z, 
+            self.neutron_x[index], 
+            self.neutron_z[index], 
+            self.neutron_y[index], 
             label='neutrons', 
-            s=1000*self.edep_energy
+            #s=1000*self.edep_energy[index]
         )
         axs.scatter3D(
-            self.muon_edep_x,
-            self.muon_edep_y, 
-            self.muon_edep_z, 
+            self.muon_edep_x[index],
+            self.muon_edep_z[index], 
+            self.muon_edep_y[index], 
             label='cosmics', 
-            s=1000*self.muon_edep_energy
+            #s=1000*self.muon_edep_energy[index]
         )
         axs.set_xlabel("x (mm)")
         axs.set_ylabel("z (mm)")
