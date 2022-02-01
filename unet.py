@@ -121,13 +121,15 @@ if __name__ == "__main__":
         dimension=3
     )
     coords = []
-    for i in range(100):
-        for j in range(100):
-            for k in range(100):
+    for i in range(10):
+        for j in range(10):
+            for k in range(10):
                 if np.random.uniform(0,1,1)[0] > 0.5:
                     coords.append([i,j,k])
     coords = [np.array(coords)]
-    feat = [np.array([[1.0] for i in range(len(coords))])]
+    N = len(coords)
+    dtype=torch.float32
+    feats = torch.arange(N * 1).view(N, 1).to(dtype)
 
     coords, feats = ME.utils.sparse_collate(coords, feat)
 
