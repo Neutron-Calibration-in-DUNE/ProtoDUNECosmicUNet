@@ -86,7 +86,7 @@ class DoubleConv2d(ME.MinkowskiNetwork):
         _dict[f'{self.name}_{self.activation}1'] = self.activation_fn
         # second conv layer
         _dict[f'{self.name}_conv2'] = ME.MinkowskiConvolution(
-            out_channels = self.out_channels,
+            in_channels  = self.out_channels,
             out_channels = self.out_channels,
             kernel_size  = self.kernel_size,
             stride       = self.stride,
