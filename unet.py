@@ -127,6 +127,8 @@ if __name__ == "__main__":
                 if np.random.uniform(0,1,1)[0] > 0.5:
                     coords.append([i,j,k])
     coords = [np.array(coords)]
+    coords = ME.utils.batched_coordinates(coords)
+    
     N = len(coords)
     dtype=torch.float32
     feats = torch.arange(N * 1).view(N, 1).to(dtype)
@@ -134,6 +136,6 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-    input = ME.SparseTensor(feats, coordinates=coords)
+    input = ME.SparseTensor(feats, coords, device=device)
 
     y = doubleconv(input)
