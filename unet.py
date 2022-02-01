@@ -139,3 +139,4 @@ if __name__ == "__main__":
     input = ME.SparseTensor(feats, coords)
 
     y = doubleconv(input)
+    print(y)
