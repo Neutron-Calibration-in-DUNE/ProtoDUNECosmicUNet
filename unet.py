@@ -113,6 +113,7 @@ class DoubleConv2d(ME.MinkowskiNetwork):
 if __name__ == "__main__":
 
     doubleconv = DoubleConv2d(
+        name='test_layer',
         in_channels=1,
         out_channels=1,
         dimension=3
