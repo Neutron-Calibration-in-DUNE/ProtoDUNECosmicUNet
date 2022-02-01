@@ -122,7 +122,7 @@ if __name__ == "__main__":
     )
 
     coords = torch.randn(100, 3, dtype=torch.double)
-    feat = torch.ones(100)
+    feat = torch.ones(100, 1, dtype=torch.double)
 
     input = ME.SparseTensor(feat, coordinates=coords)
 
