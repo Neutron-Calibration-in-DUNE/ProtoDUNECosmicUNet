@@ -120,7 +120,8 @@ if __name__ == "__main__":
         dimension=3
     )
 
-    x = np.array(
-        [[i,i+1,i+2,1] for i in range(100)]
-    )
-    y = doubleconv(x)
+    coords = np.random.rand(100,3)
+    feat = np.ones(100)
+
+    input = ME.SparseTensor(feat, coordinates=coords)
+    y = doubleconv(input)
