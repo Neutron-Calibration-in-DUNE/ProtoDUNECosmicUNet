@@ -120,8 +120,13 @@ if __name__ == "__main__":
         out_channels=1,
         dimension=3
     )
-
-    coords = np.random.rand(100, 3)
+    coords = []
+    for i in range(100):
+        for j in range(100):
+            for k in range(100):
+                if np.random.uniform(0,1,1)[0] > 0.5:
+                    coords.append([i,j,k])
+    coords = np.array(coords)
     feat = np.ones(100)
 
     coords, feats = ME.utils.sparse_collate(coords, feat)
