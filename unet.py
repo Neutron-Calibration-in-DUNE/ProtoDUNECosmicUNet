@@ -131,7 +131,7 @@ if __name__ == "__main__":
     dtype=torch.float32
     feats = torch.arange(N * 1).view(N, 1).to(dtype)
 
-    coords, feats = ME.utils.sparse_collate(coords, feat)
+    coords, feats = ME.utils.sparse_collate(coords, feats)
 
     input = ME.SparseTensor(feats, coordinates=coords)
 
