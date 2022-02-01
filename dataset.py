@@ -333,7 +333,7 @@ if __name__ == "__main__":
     dataset = NeutronCosmicDataset(
         input_file="../neutron_data/protodune_cosmic_g4.root"
     )
-    
+    print(dataset.neutron_edep_positions[0])
     voxels = ME.utils.quantization.quantize(dataset.neutron_edep_positions[0])
 
     dataset.plot_event(
