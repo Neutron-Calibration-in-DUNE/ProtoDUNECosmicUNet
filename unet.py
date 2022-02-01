@@ -2,6 +2,7 @@
 Example UNet using MinkowskiEngine
 """
 import numpy as np
+import torch
 import torch.nn as nn
 import MinkowskiEngine as ME
 from collections import OrderedDict
@@ -120,8 +121,9 @@ if __name__ == "__main__":
         dimension=3
     )
 
-    coords = np.random.rand(100,3)
-    feat = np.ones(100)
+    coords = torch.randn(100, 3, dtype=torch.double)
+    feat = torch.ones(100)
 
     input = ME.SparseTensor(feat, coordinates=coords)
+
     y = doubleconv(input)
