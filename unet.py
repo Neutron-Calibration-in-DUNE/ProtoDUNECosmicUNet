@@ -127,7 +127,7 @@ if __name__ == "__main__":
                 if np.random.uniform(0,1,1)[0] > 0.5:
                     coords.append([i,j,k])
     coords = np.array(coords)
-    feat = np.ones(100)
+    feat = np.array([[1.0] for i in range(len(coords))])
 
     coords, feats = ME.utils.sparse_collate(coords, feat)
 
