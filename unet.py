@@ -121,9 +121,11 @@ if __name__ == "__main__":
         dimension=3
     )
 
-    coords = ME.utils.batched_coordinates(torch.randn(100, 3, dtype=torch.double))
-    feat = torch.ones(100, 1, dtype=torch.double)
+    coords = np.random.rand(100, 3)
+    feat = np.ones(100, 1)
 
-    input = ME.SparseTensor(feat, coordinates=coords)
+    coords, feats = ME.utils.sparse_collate(coords, feat)
+
+    input = ME.SparseTensor(feats, coordinates=coords)
 
     y = doubleconv(input)
