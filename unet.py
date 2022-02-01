@@ -1,6 +1,7 @@
 """
 Example UNet using MinkowskiEngine
 """
+import numpy as np
 import torch.nn as nn
 import MinkowskiEngine as ME
 from collections import OrderedDict
@@ -118,3 +119,8 @@ if __name__ == "__main__":
         out_channels=1,
         dimension=3
     )
+
+    x = np.array(
+        [[i,i+1,i+2,1] for i in range(100)]
+    )
+    y = doubleconv(x)
