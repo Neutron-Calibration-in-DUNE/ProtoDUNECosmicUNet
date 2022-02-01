@@ -122,7 +122,7 @@ if __name__ == "__main__":
     )
 
     coords = np.random.rand(100, 3)
-    feat = np.ones(100, 1)
+    feat = np.ones(100)
 
     coords, feats = ME.utils.sparse_collate(coords, feat)
 
