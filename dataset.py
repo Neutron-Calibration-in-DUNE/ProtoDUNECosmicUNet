@@ -15,6 +15,7 @@ import logging
 from sklearn import cluster
 from sklearn import metrics
 import seaborn as sns
+import MinkowskiEngine as ME
 #plt.style.use('seaborn-deep')
 
 # set up logger
@@ -282,6 +283,50 @@ class NeutronCosmicDataset:
         if show:
             plt.show()
 
+    def voxelize(self,
+        event:  int,
+        voxel_size: int=4
+    ):
+        """
+        Generates a voxelized representation of the data.
+        """
+        num_x_voxels = int(abs(self.tpc_x[1]-self.tpc_x[0])/voxel_size)
+        num_y_voxels = int(abs(self.tpc_y[1]-self.tpc_y[0])/voxel_size)
+        num_z_voxels = int(abs(self.tpc_z[1]-self.tpc_z[0])/voxel_size)
+        voxels = []
+        values = []
+        labels = []
+        for ii in range(num_x_voxels):
+            for jj in range(num_y_voxels):
+                for kk in range(num_z_voxels):
+                    for xyz in range(len(self.neutron_x[event])):
+                        if (
+                            (self.neutron_x[event][xyz] >= self.tpc_x[0] + ii*voxel_size) and
+                            (self.neutron_x[event][xyz] < self.tpc_x[0] + (ii+1)*voxel_size) and 
+                            (self.neutron_y[event][xyz] >= self.tpc_y[0] + jj*voxel_size) and
+                            (self.neutron_y[event][xyz] < self.tpc_y[0] + (jj+1)*voxel_size) and 
+                            (self.neutron_z[event][xyz] >= self.tpc_z[0] + kk*voxel_size) and
+                            (self.neutron_z[event][xyz] < self.tpc_z[0] + (kk+1)*voxel_size)
+                        ):
+                            voxels.append([ii,jj,kk])
+                            values.append([self.edep_energy[event][xyz]])
+                            labels.append([0])
+                    for xyz in range(len(self.muon_edep_x[event])):
+                        if (
+                            (self.muon_edep_x[event][xyz] >= self.tpc_x[0] + ii*voxel_size) and
+                            (self.muon_edep_x[event][xyz] < self.tpc_x[0] + (ii+1)*voxel_size) and 
+                            (self.muon_edep_y[event][xyz] >= self.tpc_y[0] + jj*voxel_size) and
+                            (self.muon_edep_y[event][xyz] < self.tpc_y[0] + (jj+1)*voxel_size) and 
+                            (self.muon_edep_z[event][xyz] >= self.tpc_z[0] + kk*voxel_size) and
+                            (self.muon_edep_z[event][xyz] < self.tpc_z[0] + (kk+1)*voxel_size)
+                        ):
+                            voxels.append([ii,jj,kk])
+                            values.append([self.muon_edep_energy[event][xyz]])
+                            labels.append([1])
+        # consolidate voxels
+        logging.info(f"Generated {len(voxels)} voxel values for event {event}.")
+        return voxels, values, labels
+
 
 if __name__ == "__main__":
 
@@ -289,8 +334,11 @@ if __name__ == "__main__":
         input_file="../neutron_data/protodune_cosmic_g4.root"
     )
 
+    voxels = ME.utils..quantization.quantize(dataset.neutron_edep_positions)
+
     dataset.plot_event(
         index=0,
         title='ProtoDUNE cosmic example',
         save='protondune_cosmic_g4'
     )
+
