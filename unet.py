@@ -319,5 +319,6 @@ if __name__ == "__main__":
     feats = torch.arange(N * 1).view(N, 1).to(dtype)
     input = ME.SparseTensor(feats, coords)
 
+    unet.eval()
     y = unet(input)
     print(y)
