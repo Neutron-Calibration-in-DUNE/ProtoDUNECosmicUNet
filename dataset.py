@@ -79,7 +79,8 @@ class NeutronCosmicDataset:
     as follows:
         meta:       meta information such as ...
         Geometry:   information about the detector geometry such as volume bounding boxes...
-        neutron:    the collection of events from the simulation
+        neutron:    the collection of neutron event information from the simulation
+        muon:       the collection of muon event information
         
     The "neutron" array should have the following entries:
         event_id:           the event id for each event (e.g. [0, 7, 18, ...])
