@@ -320,5 +320,6 @@ if __name__ == "__main__":
     input = ME.SparseTensor(feats, coords)
 
     unet.eval()
+    
     y = unet(input)
     print(y)
