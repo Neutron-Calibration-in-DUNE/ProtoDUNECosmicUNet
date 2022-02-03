@@ -288,7 +288,7 @@ class UNet(nn.Module):
             if x.shape != skip_connection.shape:
                 x = F.resize(x, size=skip_connection.shape[2:])
 
-            concat_skip = ME.cat((skip_connection, x), dim=1)
+            concat_skip = ME.cat(skip_connection, x)
             x = self.module_up_dict[f'up_filter_double_conv{filter}'](concat_skip)
         
         return self.output(x)
