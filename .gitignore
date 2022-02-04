@@ -1,3 +1,7 @@
 *.log
 *.pyc
-
+*.npz
+*.root
+predictions/
+.logs/
+.checkpoints/

@@ -7,18 +7,9 @@ import torch.nn as nn
 import torchvision.transforms.functional as F
 import MinkowskiEngine as ME
 from collections import OrderedDict
-import logging
 import sys
 
-# set up logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("protodune_cosmic.log"),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+from unet_logger import UNetLogger
 
 activations = {
     'relu':     ME.MinkowskiReLU(),
@@ -33,7 +24,7 @@ def get_activation(
     if activation in activations.keys():
         return activations[activation]
 
-class DoubleConv2d(ME.MinkowskiNetwork):
+class DoubleConv(ME.MinkowskiNetwork):
     """
     """
     def __init__(self,
@@ -49,7 +40,7 @@ class DoubleConv2d(ME.MinkowskiNetwork):
     ):
         """
         """
-        super(DoubleConv2d, self).__init__(dimension)
+        super(DoubleConv, self).__init__(dimension)
         self.name = name
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -64,9 +55,9 @@ class DoubleConv2d(ME.MinkowskiNetwork):
             self.bias = True
         self.activation = activation
         self.activation_fn = get_activation(self.activation)
-        logging.info(f"Creating DoubleConv2dLayer {self.name} with in_channels: {self.in_channels}, out_channels: {self.out_channels} and dimension: {self.dimension}.")
-        logging.info(f"DoubleConv2dLayer {self.name} has activation function: {self.activation}, bias: {self.bias} and batch_norm: {self.batch_norm}.")
-        logging.info(f"DoubleConv2dLayer {self.name} has kernel_size: {self.kernel_size}, stride: {self.stride} and dilation: {self.dilation}.")
+        #self.logger.info(f"Creating DoubleConvLayer {self.name} with in_channels: {self.in_channels}, out_channels: {self.out_channels} and dimension: {self.dimension}.")
+        #self.logger.info(f"DoubleConvLayer {self.name} has activation function: {self.activation}, bias: {self.bias} and batch_norm: {self.batch_norm}.")
+        #self.logger.info(f"DoubleConvLayer {self.name} has kernel_size: {self.kernel_size}, stride: {self.stride} and dilation: {self.dilation}.")
         self.construct_model()
 
     def construct_model(self):
@@ -101,7 +92,7 @@ class DoubleConv2d(ME.MinkowskiNetwork):
             _dict[f'{self.name}_batch_norm2'] = ME.MinkowskiBatchNorm(self.out_channels)
         _dict[f'{self.name}_{self.activation}2'] = self.activation_fn
         self.module_dict = nn.ModuleDict(_dict)
-        logging.info(f"Constructed DoubleConv2dLayer: {self.module_dict}.")
+        #self.logger.info(f"Constructed DoubleConvLayer: {self.module_dict}.")
 
     def forward(self, 
         x
@@ -145,12 +136,13 @@ class UNet(nn.Module):
         cfg:    dict=UNet_params   # configuration parameters
     ):
         super(UNet, self).__init__()
+        self.logger = UNetLogger('model', file_mode='w')
         self.cfg = cfg
         # check cfg
-        logging.info(f"checking UNet architecture using cfg: {self.cfg}")
+        self.logger.info(f"checking UNet architecture using cfg: {self.cfg}")
         for item in UNet_params.keys():
             if item not in self.cfg:
-                logging.error(f"parameter {item} was not specified in config file {self.cfg}")
+                self.logger.error(f"parameter {item} was not specified in config file {self.cfg}")
                 raise AttributeError
         
         # construct the model
@@ -161,13 +153,13 @@ class UNet(nn.Module):
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
         """
-        logging.info(f"Attempting to build UNet architecture using cfg: {self.cfg}")
+        self.logger.info(f"Attempting to build UNet architecture using cfg: {self.cfg}")
         _down_dict = OrderedDict()
         _up_dict = OrderedDict()
         # iterate over the down part
         in_channels = self.cfg['in_channels']
         for filter in self.cfg['filtrations']:
-            _down_dict[f'down_filter_double_conv{filter}'] = DoubleConv2d(
+            _down_dict[f'down_filter_double_conv{filter}'] = DoubleConv(
                 name=f'down_{filter}',
                 in_channels=in_channels,
                 out_channels=filter,
@@ -202,7 +194,7 @@ class UNet(nn.Module):
                 dilation=self.cfg['conv_transpose_dilation'],
                 dimension=self.cfg['conv_transpose_dimension']    
             )
-            _up_dict[f'up_filter_double_conv{filter}'] = DoubleConv2d(
+            _up_dict[f'up_filter_double_conv{filter}'] = DoubleConv(
                 name=f'up_{filter}',
                 in_channels=2*filter,
                 out_channels=filter,
@@ -214,7 +206,7 @@ class UNet(nn.Module):
                 batch_norm=self.cfg['double_conv_batch_norm'],
             )
         # create bottleneck layer
-        self.bottleneck = DoubleConv2d(
+        self.bottleneck = DoubleConv(
             name=f"bottleneck_{self.cfg['filtrations'][-1]}",
             in_channels=self.cfg['filtrations'][-1],
             out_channels=2*self.cfg['filtrations'][-1],
@@ -262,8 +254,8 @@ class UNet(nn.Module):
         self.module_down_dict = nn.ModuleDict(_down_dict)
         self.module_up_dict = nn.ModuleDict(_up_dict)
         # record the info
-        logging.info(f"Constructed UNet with down: {self.module_down_dict} and up: {self.module_up_dict}.")
-        logging.info(f"Bottleneck layer: {self.bottleneck}, output layer: {self.output} and max pooling: {self.max_pooling}.")
+        self.logger.info(f"Constructed UNet with down: {self.module_down_dict} and up: {self.module_up_dict}.")
+        self.logger.info(f"Bottleneck layer: {self.bottleneck}, output layer: {self.output} and max pooling: {self.max_pooling}.")
 
     def forward(self, 
         x
@@ -292,34 +284,3 @@ class UNet(nn.Module):
             x = self.module_up_dict[f'up_filter_double_conv{filter}'](concat_skip)
         
         return self.output(x)
-
-if __name__ == "__main__":
-
-    doubleconv = DoubleConv2d(
-        name='test_layer',
-        in_channels=1,
-        out_channels=1,
-        dimension=3
-    )
-    
-    unet = UNet(
-        cfg=UNet_params
-    )
-
-    coords = []
-    for i in range(10):
-        for j in range(10):
-            for k in range(10):
-                if np.random.uniform(0,1,1)[0] > 0.5:
-                    coords.append([i,j,k])
-    coords = [np.array(coords)]
-    coords = ME.utils.batched_coordinates(coords)
-    N = len(coords)
-    dtype=torch.float32
-    feats = torch.arange(N * 1).view(N, 1).to(dtype)
-    input = ME.SparseTensor(feats, coords)
-
-    unet.eval()
-    
-    y = unet(input)
-    print(y)

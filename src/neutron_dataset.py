@@ -15,6 +15,9 @@ import logging
 from sklearn import cluster
 from sklearn import metrics
 import seaborn as sns
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset
 import MinkowskiEngine as ME
 #plt.style.use('seaborn-deep')
 
@@ -41,7 +44,7 @@ def load_array(
         raise Exception
     return array
 
-required_arrays = [
+required_neutron_arrays = [
     'event_id',
     'neutron_ids',
     'neutron_capture_x',
@@ -57,6 +60,14 @@ required_arrays = [
     'edep_x',
     'edep_y',
     'edep_z',
+    'electron_ids',
+    'electron_neutron_ids',
+    'electron_gamma_ids',
+    'electron_energy',
+    'edep_num_electrons',
+]
+
+required_muon_arrays = [
     'primary_muons',
     'muon_ids',
     'muon_edep_ids',
@@ -65,11 +76,24 @@ required_arrays = [
     'muon_edep_x',
     'muon_edep_y',
     'muon_edep_z',
-    'electron_ids',
-    'electron_neutron_ids',
-    'electron_gamma_ids',
-    'electron_energy',
-    'edep_num_electrons',
+]
+
+required_voxel_arrays = [
+    "x_min", 
+    "x_max", 
+    "y_min", 
+    "y_max", 
+    "z_min", 
+    "z_max", 
+    "voxel_size", 
+    "num_voxels_x",
+    "num_voxels_y",
+    "num_voxels_z",
+    "x_id", 
+    "y_id", 
+    "z_id", 
+    "values",
+    "labels",
 ]
 
 class NeutronCosmicDataset:
@@ -81,6 +105,7 @@ class NeutronCosmicDataset:
         Geometry:   information about the detector geometry such as volume bounding boxes...
         neutron:    the collection of neutron event information from the simulation
         muon:       the collection of muon event information
+        voxels:     the collection of voxelized truth/reco information
         
     The "neutron" array should have the following entries:
         event_id:           the event id for each event (e.g. [0, 7, 18, ...])
@@ -98,6 +123,13 @@ class NeutronCosmicDataset:
         edep_x (mm):        the x position of each edep in the event (e.g. [-42, 500.1, ...])
         edep_y (mm):        the y position ""
         edep_z (mm):        the z position ""
+        electron_ids:           the track id of each electron tracked in the simulation that comes from a gamma
+        electron_neutron_ids:   the corresponding id of the neutron that generated the electron with id ^^^
+        electron_gamma_ids:     the corresponding id of the gamma that generated the electron with id ^^^
+        electron_energy (GeV):  the energy of each electron tracked in the simulation (e.g. [0.00058097, ...])
+        edep_num_electrons:     the number of electrons coming out of the IonAndScint simulation for each edep ^^^
+    
+    The "muon" array should have the following entries:
         primary_muons:      the number of muons in the event
         muon_ids:           the track ids of the muons
         muon_edep_ids:      the track id of the corresponding muon that left the energy deposit
@@ -106,15 +138,18 @@ class NeutronCosmicDataset:
         muon_edep_x:        the x position of each edep from muons
         muon_edep_y:        the y ""
         muon_edep_z:        the z ""
-        electron_ids:           the track id of each electron tracked in the simulation that comes from a gamma
-        electron_neutron_ids:   the corresponding id of the neutron that generated the electron with id ^^^
-        electron_gamma_ids:     the corresponding id of the gamma that generated the electron with id ^^^
-        electron_energy (GeV):  the energy of each electron tracked in the simulation (e.g. [0.00058097, ...])
-        edep_num_electrons:     the number of electrons coming out of the IonAndScint simulation for each edep ^^^
     """
     def __init__(self,
         input_file,
+        load_neutrons:  bool=True,
+        load_muons:     bool=True,
+        load_ar39:      bool=True,
+        load_voxels:    bool=True,
     ):
+        self.load_neutrons = load_neutrons
+        self.load_muons    = load_muons
+        self.load_ar39     = load_ar39
+        self.load_voxels   = load_voxels
         logging.info(f"Attempting to load file {input_file}.")
         # load the file
         try:
@@ -126,68 +161,101 @@ class NeutronCosmicDataset:
         # now load the various arrays
         self.meta       = load_array(self.input_file, 'ana/meta')
         self.geometry   = load_array(self.input_file, 'ana/Geometry')
-        self.events     = load_array(self.input_file, 'ana/neutron')
+        if load_neutrons:
+            self.neutron    = load_array(self.input_file, 'ana/neutron')
+        if load_muons:
+            self.muon       = load_array(self.input_file, 'ana/muon')
+        if load_voxels:
+            self.voxels     = load_array(self.input_file, 'ana/voxels')
 
         # construct truth info
         # each index in these arrays correspond to an event
-        try:
-            self.event_ids          = self.events['event_id']
-            self.neutron_ids        = self.events['neutron_ids']
-            self.neutron_capture_x  = self.events['neutron_capture_x']
-            self.neutron_capture_y  = self.events['neutron_capture_y']
-            self.neutron_capture_z  = self.events['neutron_capture_z']
-            self.gamma_ids          = self.events['gamma_ids']
-            self.gamma_neutron_ids  = self.events['gamma_neutron_ids']
-            self.gamma_energy       = self.events['gamma_energy']
-            self.edep_energy        = self.events['edep_energy']
-            self.edep_parent        = self.events['edep_parent']
-            self.edep_neutron_ids   = self.events['edep_neutron_ids']
-            self.edep_gamma_ids     = self.events['edep_gamma_ids'] 
-            self.neutron_x          = self.events['edep_x']
-            self.neutron_y          = self.events['edep_y']
-            self.neutron_z          = self.events['edep_z']
-            self.num_muons          = self.events['primary_muons']
-            self.muon_ids           = self.events['muon_edep_ids']
-            self.muon_edep_energy   = self.events['muon_edep_energy']
-            self.muon_edep_num_electrons = self.events['muon_edep_num_electrons']
-            self.muon_edep_x        = self.events['muon_edep_x']
-            self.muon_edep_y        = self.events['muon_edep_y']
-            self.muon_edep_z        = self.events['muon_edep_z']       
-            self.electron_ids           = self.events['electron_ids']
-            self.electron_neutron_ids   = self.events['electron_neutron_ids']
-            self.electron_gamma_ids     = self.events['electron_gamma_ids']
-            self.electron_energy        = self.events['electron_energy']
-            self.edep_num_electrons     = self.events['edep_num_electrons']
-        except:
-            logging.error(f"One or more of the required arrays {required_arrays} is not present in {self.events.keys()}.")
-            raise ValueError
+        if self.load_neutrons:
+            try:
+                self.event_ids          = self.neutron['event_id']
+                self.neutron_ids        = self.neutron['neutron_ids']
+                self.neutron_capture_x  = self.neutron['neutron_capture_x']
+                self.neutron_capture_y  = self.neutron['neutron_capture_y']
+                self.neutron_capture_z  = self.neutron['neutron_capture_z']
+                self.gamma_ids          = self.neutron['gamma_ids']
+                self.gamma_neutron_ids  = self.neutron['gamma_neutron_ids']
+                self.gamma_energy       = self.neutron['gamma_energy']
+                self.edep_energy        = self.neutron['edep_energy']
+                self.edep_parent        = self.neutron['edep_parent']
+                self.edep_neutron_ids   = self.neutron['edep_neutron_ids']
+                self.edep_gamma_ids     = self.neutron['edep_gamma_ids'] 
+                self.neutron_x          = self.neutron['edep_x']
+                self.neutron_y          = self.neutron['edep_y']
+                self.neutron_z          = self.neutron['edep_z']      
+                self.electron_ids           = self.neutron['electron_ids']
+                self.electron_neutron_ids   = self.neutron['electron_neutron_ids']
+                self.electron_gamma_ids     = self.neutron['electron_gamma_ids']
+                self.electron_energy        = self.neutron['electron_energy']
+                self.edep_num_electrons     = self.neutron['edep_num_electrons']
+            except:
+                logging.error(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
+                raise ValueError(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
+        if self.load_muons:
+            try: 
+                self.num_muons          = self.muon['primary_muons']
+                self.muon_ids           = self.muon['muon_edep_ids']
+                self.muon_edep_energy   = self.muon['muon_edep_energy']
+                self.muon_edep_num_electrons = self.muon['muon_edep_num_electrons']
+                self.muon_edep_x        = self.muon['muon_edep_x']
+                self.muon_edep_y        = self.muon['muon_edep_y']
+                self.muon_edep_z        = self.muon['muon_edep_z'] 
+            except:
+                logging.error(f"One or more of the required arrays {required_muon_arrays} is not present in {self.muon.keys()}.")
+                raise ValueError(f"One or more of the required arrays {required_muon_arrays} is not present in {self.muon.keys()}.")
+        if self.load_voxels:
+            try:
+                self.x_min  = self.voxels['x_min']
+                self.x_max  = self.voxels['x_max']
+                self.y_min  = self.voxels['y_min']
+                self.y_max  = self.voxels['y_max']
+                self.z_min  = self.voxels['z_min']
+                self.z_max  = self.voxels['z_max']
+                self.voxel_size = self.voxels['voxel_size']
+                self.num_voxels_x   = self.voxels['num_voxels_x']
+                self.num_voxels_y   = self.voxels['num_voxels_y']
+                self.num_voxels_z   = self.voxels['num_voxels_z']
+                self.x_id   = self.voxels['x_id']
+                self.y_id   = self.voxels['y_id']
+                self.z_id   = self.voxels['z_id']
+                self.values = self.voxels['values']
+                self.labels = self.voxels['labels']
+            except:
+                logging.error(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
+                raise ValueError(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
         self.num_events = len(self.event_ids)
         logging.info(f"Loaded arrays with {self.num_events} entries.")
-        # construct positions for neutrons
-        self.neutron_edep_positions = np.array(
-            [
-                np.array([[
-                    self.neutron_x[jj][ii],
-                    self.neutron_y[jj][ii],
-                    self.neutron_z[jj][ii]]
-                    for ii in range(len(self.neutron_x[jj]))
-                ], dtype=float)
-                for jj in range(len(self.neutron_x))
-            ], 
-            dtype=object
-        )
-        self.muon_edep_positions = np.array(
-            [
-                np.array([[
-                    self.muon_edep_x[jj][ii],
-                    self.muon_edep_y[jj][ii],
-                    self.muon_edep_z[jj][ii]]
-                    for ii in range(len(self.muon_edep_x[jj]))
-                ], dtype=float)
-                for jj in range(len(self.muon_edep_x))
-            ], 
-            dtype=object
-        )
+        if self.load_neutrons:
+            # construct positions for neutrons
+            self.neutron_edep_positions = np.array(
+                [
+                    np.array([[
+                        self.neutron_x[jj][ii],
+                        self.neutron_y[jj][ii],
+                        self.neutron_z[jj][ii]]
+                        for ii in range(len(self.neutron_x[jj]))
+                    ], dtype=float)
+                    for jj in range(len(self.neutron_x))
+                ], 
+                dtype=object
+            )
+        if self.load_muons:
+            self.muon_edep_positions = np.array(
+                [
+                    np.array([[
+                        self.muon_edep_x[jj][ii],
+                        self.muon_edep_y[jj][ii],
+                        self.muon_edep_z[jj][ii]]
+                        for ii in range(len(self.muon_edep_x[jj]))
+                    ], dtype=float)
+                    for jj in range(len(self.muon_edep_x))
+                ], 
+                dtype=object
+            )
         # construct TPC boxes
         self.total_tpc_ranges = self.geometry['total_active_tpc_box_ranges']
         self.tpc_x = [self.total_tpc_ranges[0][0], self.total_tpc_ranges[0][1]]
@@ -240,20 +308,22 @@ class NeutronCosmicDataset:
             raise IndexError(f"Tried accessing element {index} of array with size {self.num_events}!")
         fig = plt.figure(figsize=(8,6))
         axs = fig.add_subplot(projection='3d')
-        axs.scatter3D(
-            self.neutron_x[index], 
-            self.neutron_z[index], 
-            self.neutron_y[index], 
-            label='neutrons', 
-            #s=1000*self.edep_energy[index]
-        )
-        axs.scatter3D(
-            self.muon_edep_x[index],
-            self.muon_edep_z[index], 
-            self.muon_edep_y[index], 
-            label='cosmics', 
-            #s=1000*self.muon_edep_energy[index]
-        )
+        if self.load_neutrons:
+            axs.scatter3D(
+                self.neutron_x[index], 
+                self.neutron_z[index], 
+                self.neutron_y[index], 
+                label='neutrons', 
+                #s=1000*self.edep_energy[index]
+            )
+        if self.load_muons:
+            axs.scatter3D(
+                self.muon_edep_x[index],
+                self.muon_edep_z[index], 
+                self.muon_edep_y[index], 
+                label='cosmics', 
+                #s=1000*self.muon_edep_energy[index]
+            )
         axs.set_xlabel("x (mm)")
         axs.set_ylabel("z (mm)")
         axs.set_zlabel("y (mm)")
@@ -284,58 +354,38 @@ class NeutronCosmicDataset:
         if show:
             plt.show()
 
-    def voxelize(self,
-        event:  int,
-        voxel_size: int=4
+    def generate_unet_training(self,
+        output_file:    str
     ):
-        """
-        Generates a voxelized representation of the data.
-        """
-        num_x_voxels = int(abs(self.tpc_x[1]-self.tpc_x[0])/voxel_size)
-        num_y_voxels = int(abs(self.tpc_y[1]-self.tpc_y[0])/voxel_size)
-        num_z_voxels = int(abs(self.tpc_z[1]-self.tpc_z[0])/voxel_size)
-        voxels = []
-        values = []
-        labels = []
-        for ii in range(num_x_voxels):
-            for jj in range(num_y_voxels):
-                for kk in range(num_z_voxels):
-                    for xyz in range(len(self.neutron_x[event])):
-                        if (
-                            (self.neutron_x[event][xyz] >= self.tpc_x[0] + ii*voxel_size) and
-                            (self.neutron_x[event][xyz] < self.tpc_x[0] + (ii+1)*voxel_size) and 
-                            (self.neutron_y[event][xyz] >= self.tpc_y[0] + jj*voxel_size) and
-                            (self.neutron_y[event][xyz] < self.tpc_y[0] + (jj+1)*voxel_size) and 
-                            (self.neutron_z[event][xyz] >= self.tpc_z[0] + kk*voxel_size) and
-                            (self.neutron_z[event][xyz] < self.tpc_z[0] + (kk+1)*voxel_size)
-                        ):
-                            voxels.append([ii,jj,kk])
-                            values.append([self.edep_energy[event][xyz]])
-                            labels.append([0])
-                    for xyz in range(len(self.muon_edep_x[event])):
-                        if (
-                            (self.muon_edep_x[event][xyz] >= self.tpc_x[0] + ii*voxel_size) and
-                            (self.muon_edep_x[event][xyz] < self.tpc_x[0] + (ii+1)*voxel_size) and 
-                            (self.muon_edep_y[event][xyz] >= self.tpc_y[0] + jj*voxel_size) and
-                            (self.muon_edep_y[event][xyz] < self.tpc_y[0] + (jj+1)*voxel_size) and 
-                            (self.muon_edep_z[event][xyz] >= self.tpc_z[0] + kk*voxel_size) and
-                            (self.muon_edep_z[event][xyz] < self.tpc_z[0] + (kk+1)*voxel_size)
-                        ):
-                            voxels.append([ii,jj,kk])
-                            values.append([self.muon_edep_energy[event][xyz]])
-                            labels.append([1])
-        # consolidate voxels
-        logging.info(f"Generated {len(voxels)} voxel values for event {event}.")
-        return voxels, values, labels
+        logging.info(f"Attempting to generate voxel dataset {output_file}.")
+        voxel_coords = np.array([
+            [
+                [self.x_id[j][i],
+                 self.y_id[j][i],
+                 self.z_id[j][i]]
+                for i in range(len(self.x_id[j]))
+            ]
+            for j in range(len(self.x_id))
+        ])
+        feats = [[[1.] for i in range(len(self.values[i]))] for i in range(len(self.values))]
+        np.savez(output_file,
+            coords=voxel_coords,
+            feats = feats,
+            labels= self.labels
+        )
+        logging.info(f"Saved voxel dataset to {output_file}.")
+
 
 
 if __name__ == "__main__":
 
     dataset = NeutronCosmicDataset(
-        input_file="../neutron_data/protodune_cosmic_g4.root"
+        input_file="../neutron_data/protodune_cosmic_voxels.root"
     )
-    print(dataset.neutron_edep_positions[0])
-    voxels = ME.utils.quantization.quantize(dataset.neutron_edep_positions[0])
+
+    dataset.generate_unet_training(
+        output_file="../neutron_data/unet_dataset.npz",
+    )
 
     dataset.plot_event(
         index=0,
