@@ -2,6 +2,10 @@
 Global logger for the UNet
 """
 import logging
+<<<<<<< HEAD
+import platform,socket,re,uuid,json,psutil
+=======
+>>>>>>> c39b59bbe510058963085c1c64dc70094c4f7365
 from multiprocessing.sharedctypes import Value
 import sys
 import os
@@ -139,3 +143,22 @@ class UNetLogger:
         for metric in metrics:
             message += ','+str(metric)
         return self.logger.info(message)
+<<<<<<< HEAD
+    
+    def get_system_info(self):
+        info={}
+        try:
+            info['platform']=platform.system()
+            info['platform-release']=platform.release()
+            info['platform-version']=platform.version()
+            info['architecture']=platform.machine()
+            info['hostname']=socket.gethostname()
+            info['ip-address']=socket.gethostbyname(socket.gethostname())
+            info['mac-address']=':'.join(re.findall('..', '%012x' % uuid.getnode()))
+            info['processor']=platform.processor()
+            info['ram']=str(round(psutil.virtual_memory().total / (1024.0 **3)))+" GB"   
+        except Exception as e:
+            self.logger.error(f"Unable to obtain system information: {e}.")
+        return info
+=======
+>>>>>>> c39b59bbe510058963085c1c64dc70094c4f7365

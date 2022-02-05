@@ -354,26 +354,27 @@ class SparseTrainer:
             self.testing_metrics_logger.metrics(epoch,self.metrics.test_totals)
     
     def inference(self,
-        dataset_loader,             # dataset_loader to pass in
-        dataset_type   = 'train',   # train, val, test or all
+        dataset_loader,                     # dataset_loader to pass in
+        dataset_type:       str='train',    # train, val, test or all
         save_predictions:   bool=True,
         output_file:        str='output.npz',
     ):
         """
         Inference loop
         """
-        if dataset_type == 'train':
-            inference_loop = enumerate(dataset_loader.train_loader, 0)
-        elif dataset_type == 'val':
-            inference_loop = enumerate(dataset_loader.validation_loader, 0)
-        elif dataset_type == 'test':
-            inference_loop = enumerate(dataset_loader.test_loader, 0)
-        elif dataset_type == 'all':
-            inference_loop = enumerate(dataset_loader.all_loader, 0)
-        else:
-            self.logger.warn(f"dataset_type '{dataset_type}' is an invalid choice.  valid choices are 'train', 'val', 'test' and 'all', setting dataset_type to 'all'.")
-            dataset_type = 'all'
-            inference_loop = enumerate(dataset_loader.all_loader, 0)
+        # if dataset_type == 'train':
+        #     inference_loop = enumerate(dataset_loader.train_loader, 0)
+        # elif dataset_type == 'val':
+        #     inference_loop = enumerate(dataset_loader.validation_loader, 0)
+        # elif dataset_type == 'test':
+        #     inference_loop = enumerate(dataset_loader.test_loader, 0)
+        # elif dataset_type == 'all':
+        #     inference_loop = enumerate(dataset_loader.all_loader, 0)
+        # else:
+        #     self.logger.warn(f"dataset_type '{dataset_type}' is an invalid choice.  valid choices are 'train', 'val', 'test' and 'all', setting dataset_type to 'all'.")
+        #     dataset_type = 'all'
+        #     inference_loop = enumerate(dataset_loader.all_loader, 0)
+        inference_loop = enumerate(dataset_loader.inference_loader, 0)
         self.logger.info(f"running inference on '{dataset_type}' dataset")
 
         inference_loss = 0.0
@@ -383,11 +384,13 @@ class SparseTrainer:
         saved_feats = np.empty((1,1))
         saved_labels = np.empty(1)
         saved_predictions = np.empty((1,1))
+        saved_events = []
+        saved_metrics = []
         # run through the inference loop
         for ii, data in inference_loop:
             # get the inputs
             if dataset_loader.weights == False:
-                    coords, feats, labels = data
+                coords, feats, labels = data
             else:
                 coords, feats, labels, weights = data
                 weights.to(self.device)
@@ -415,16 +418,22 @@ class SparseTrainer:
                     inference_loss += loss.item() / dataset_loader.num_test_batches
                 else:
                     inference_loss += loss.item() / dataset_loader.num_all_batches
+                
                 saved_coords = np.concatenate((saved_coords, coords.cpu()))
                 saved_feats  = np.concatenate((saved_feats, feats.cpu()))
                 saved_labels = np.concatenate((saved_labels, labels.cpu()))
                 saved_predictions = np.concatenate((saved_predictions, outputs.F.cpu()))
-                
+                saved_metrics.append(self.metrics.inference_metrics(outputs, labels, 1.0))
+                if ii == 0:
+                    saved_events.append([0,len(coords)-1])
+                else:
+                    saved_events.append([saved_events[ii-1][1]+1,saved_events[ii-1][1] + len(coords)])
                 if ii == 0:
                     saved_coords = np.delete(saved_coords, 0, 0)
                     saved_feats = np.delete(saved_feats, 0, 0)
                     saved_labels = np.delete(saved_labels, 0, 0)
                     saved_predictions = np.delete(saved_predictions, 0, 0)
+            
         saved_coords = np.delete(saved_coords, 0, 1)
         saved_feats = saved_feats.flatten()
         saved_labels = saved_labels.flatten()
@@ -432,8 +441,11 @@ class SparseTrainer:
         if save_predictions:
             np.savez(
                 'predictions/'+output_file,
+                events=saved_events,
                 coords=saved_coords,
                 feats=saved_feats,
                 labels=saved_labels,
-                predictions=saved_predictions
+                predictions=saved_predictions,
+                metrics=saved_metrics,
+                metric_names=self.metrics.metric_names,
             )

@@ -89,3 +89,10 @@ class GenericLoader():
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=ME.utils.SparseCollation())
+        
+        self.inference_loader = DataLoader(
+            self.dataset,
+            batch_size=1,
+            pin_memory=True,
+            num_workers=self.num_workers,
+            collate_fn=ME.utils.SparseCollation())
