@@ -1,0 +1,150 @@
+Meta information for model neutron_cosmic_unet
+date:	02/05/2022 14:54:05
+user:	ncarrara
+user_id:	1000
+System information:
+platform	Linux
+platform-release	5.13.0-28-generic
+platform-version	#31~20.04.1-Ubuntu SMP Wed Jan 19 14:08:10 UTC 2022
+architecture	x86_64
+hostname	ETJ0
+ip-address	127.0.1.1
+mac-address	fc:34:97:a6:55:7e
+processor	x86_64
+ram	31 GB
+
+Model configuration:
+
+in_channels	1
+out_channels	1
+filtrations	[64, 128, 256, 512]
+double_conv_kernel	3
+double_conv_stride	1
+double_conv_dilation	1
+double_conv_activation	relu
+double_conv_dimension	3
+double_conv_batch_norm	True
+conv_transpose_kernel	2
+conv_transpose_stride	2
+conv_transpose_dilation	1
+conv_transpose_dimension	3
+max_pooling_kernel	2
+max_pooling_stride	2
+max_pooling_dilation	1
+max_pooling_dimension	3
+
+Model dictionary:
+bottleneck.module_dict.bottleneck_512_conv1.kernel	torch.Size([27, 512, 1024])
+bottleneck.module_dict.bottleneck_512_batch_norm1.bn.weight	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm1.bn.bias	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm1.bn.running_mean	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm1.bn.running_var	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm1.bn.num_batches_tracked	torch.Size([])
+bottleneck.module_dict.bottleneck_512_conv2.kernel	torch.Size([27, 1024, 1024])
+bottleneck.module_dict.bottleneck_512_batch_norm2.bn.weight	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm2.bn.bias	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm2.bn.running_mean	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm2.bn.running_var	torch.Size([1024])
+bottleneck.module_dict.bottleneck_512_batch_norm2.bn.num_batches_tracked	torch.Size([])
+output.kernel	torch.Size([64, 1])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_conv1.kernel	torch.Size([27, 1, 64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm1.bn.weight	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm1.bn.bias	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm1.bn.running_mean	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm1.bn.running_var	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_conv2.kernel	torch.Size([27, 64, 64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm2.bn.weight	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm2.bn.bias	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm2.bn.running_mean	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm2.bn.running_var	torch.Size([64])
+module_down_dict.down_filter_double_conv64.module_dict.down_64_batch_norm2.bn.num_batches_tracked	torch.Size([])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_conv1.kernel	torch.Size([27, 64, 128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm1.bn.weight	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm1.bn.bias	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm1.bn.running_mean	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm1.bn.running_var	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_conv2.kernel	torch.Size([27, 128, 128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm2.bn.weight	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm2.bn.bias	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm2.bn.running_mean	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm2.bn.running_var	torch.Size([128])
+module_down_dict.down_filter_double_conv128.module_dict.down_128_batch_norm2.bn.num_batches_tracked	torch.Size([])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_conv1.kernel	torch.Size([27, 128, 256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm1.bn.weight	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm1.bn.bias	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm1.bn.running_mean	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm1.bn.running_var	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_conv2.kernel	torch.Size([27, 256, 256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm2.bn.weight	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm2.bn.bias	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm2.bn.running_mean	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm2.bn.running_var	torch.Size([256])
+module_down_dict.down_filter_double_conv256.module_dict.down_256_batch_norm2.bn.num_batches_tracked	torch.Size([])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_conv1.kernel	torch.Size([27, 256, 512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm1.bn.weight	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm1.bn.bias	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm1.bn.running_mean	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm1.bn.running_var	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_conv2.kernel	torch.Size([27, 512, 512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm2.bn.weight	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm2.bn.bias	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm2.bn.running_mean	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm2.bn.running_var	torch.Size([512])
+module_down_dict.down_filter_double_conv512.module_dict.down_512_batch_norm2.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_transpose512.kernel	torch.Size([8, 1024, 512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_conv1.kernel	torch.Size([27, 1024, 512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm1.bn.weight	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm1.bn.bias	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm1.bn.running_mean	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm1.bn.running_var	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_conv2.kernel	torch.Size([27, 512, 512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm2.bn.weight	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm2.bn.bias	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm2.bn.running_mean	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm2.bn.running_var	torch.Size([512])
+module_up_dict.up_filter_double_conv512.module_dict.up_512_batch_norm2.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_transpose256.kernel	torch.Size([8, 512, 256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_conv1.kernel	torch.Size([27, 512, 256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm1.bn.weight	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm1.bn.bias	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm1.bn.running_mean	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm1.bn.running_var	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_conv2.kernel	torch.Size([27, 256, 256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm2.bn.weight	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm2.bn.bias	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm2.bn.running_mean	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm2.bn.running_var	torch.Size([256])
+module_up_dict.up_filter_double_conv256.module_dict.up_256_batch_norm2.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_transpose128.kernel	torch.Size([8, 256, 128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_conv1.kernel	torch.Size([27, 256, 128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm1.bn.weight	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm1.bn.bias	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm1.bn.running_mean	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm1.bn.running_var	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_conv2.kernel	torch.Size([27, 128, 128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm2.bn.weight	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm2.bn.bias	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm2.bn.running_mean	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm2.bn.running_var	torch.Size([128])
+module_up_dict.up_filter_double_conv128.module_dict.up_128_batch_norm2.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_transpose64.kernel	torch.Size([8, 128, 64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_conv1.kernel	torch.Size([27, 128, 64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm1.bn.weight	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm1.bn.bias	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm1.bn.running_mean	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm1.bn.running_var	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm1.bn.num_batches_tracked	torch.Size([])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_conv2.kernel	torch.Size([27, 64, 64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm2.bn.weight	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm2.bn.bias	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm2.bn.running_mean	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm2.bn.running_var	torch.Size([64])
+module_up_dict.up_filter_double_conv64.module_dict.up_64_batch_norm2.bn.num_batches_tracked	torch.Size([])
+

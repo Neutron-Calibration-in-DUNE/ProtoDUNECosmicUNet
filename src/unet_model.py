@@ -7,11 +7,8 @@ import torch.nn as nn
 import torchvision.transforms.functional as F
 import MinkowskiEngine as ME
 from collections import OrderedDict
-<<<<<<< HEAD:src/unet_model.py
 from datetime import datetime
 import getpass
-=======
->>>>>>> c39b59bbe510058963085c1c64dc70094c4f7365:unet.py
 import sys
 import os
 import csv
@@ -62,12 +59,6 @@ class DoubleConv(ME.MinkowskiNetwork):
             self.bias = True
         self.activation = activation
         self.activation_fn = get_activation(self.activation)
-<<<<<<< HEAD:src/unet_model.py
-=======
-        #self.logger.info(f"Creating DoubleConvLayer {self.name} with in_channels: {self.in_channels}, out_channels: {self.out_channels} and dimension: {self.dimension}.")
-        #self.logger.info(f"DoubleConvLayer {self.name} has activation function: {self.activation}, bias: {self.bias} and batch_norm: {self.batch_norm}.")
-        #self.logger.info(f"DoubleConvLayer {self.name} has kernel_size: {self.kernel_size}, stride: {self.stride} and dilation: {self.dilation}.")
->>>>>>> c39b59bbe510058963085c1c64dc70094c4f7365:unet.py
         self.construct_model()
 
     def construct_model(self):
@@ -102,10 +93,6 @@ class DoubleConv(ME.MinkowskiNetwork):
             _dict[f'{self.name}_batch_norm2'] = ME.MinkowskiBatchNorm(self.out_channels)
         _dict[f'{self.name}_{self.activation}2'] = self.activation_fn
         self.module_dict = nn.ModuleDict(_dict)
-<<<<<<< HEAD:src/unet_model.py
-=======
-        #self.logger.info(f"Constructed DoubleConvLayer: {self.module_dict}.")
->>>>>>> c39b59bbe510058963085c1c64dc70094c4f7365:unet.py
 
     def forward(self, 
         x

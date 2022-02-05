@@ -2,10 +2,7 @@
 Global logger for the UNet
 """
 import logging
-<<<<<<< HEAD
 import platform,socket,re,uuid,json,psutil
-=======
->>>>>>> c39b59bbe510058963085c1c64dc70094c4f7365
 from multiprocessing.sharedctypes import Value
 import sys
 import os
@@ -143,7 +140,6 @@ class UNetLogger:
         for metric in metrics:
             message += ','+str(metric)
         return self.logger.info(message)
-<<<<<<< HEAD
     
     def get_system_info(self):
         info={}
@@ -160,5 +156,3 @@ class UNetLogger:
         except Exception as e:
             self.logger.error(f"Unable to obtain system information: {e}.")
         return info
-=======
->>>>>>> c39b59bbe510058963085c1c64dc70094c4f7365
