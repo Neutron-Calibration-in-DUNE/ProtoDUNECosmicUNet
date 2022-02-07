@@ -155,13 +155,16 @@ class NeutronCosmicDataset:
         if self.load_voxels:
             self.voxel_coords = np.array([
                 [
-                    [self.x_id[j][i],
-                    self.y_id[j][i],
-                    self.z_id[j][i]]
-                    for i in range(len(self.x_id[j]))
-                ]
-                for j in range(len(self.x_id))
-            ])
+                    [
+                        self.x_id[j][i],
+                        self.y_id[j][i],
+                        self.z_id[j][i]]
+                        for i in range(len(self.x_id[j]))
+                    ]
+                    for j in range(len(self.x_id))
+                ], 
+                dtype=object
+            )
             self.discrete_voxel_values = [
                 [[1.] for i in range(len(self.voxel_values[i]))] 
                     for i in range(len(self.voxel_values))
@@ -204,6 +207,28 @@ class NeutronCosmicDataset:
             [[self.cryo_x[1],self.cryo_y[0],self.cryo_z[1]],[self.cryo_x[0],self.cryo_y[0],self.cryo_z[1]]],
             [[self.cryo_x[1],self.cryo_y[1],self.cryo_z[0]],[self.cryo_x[1],self.cryo_y[1],self.cryo_z[1]]],
         ]
+        self.calculate_capture_ratio()
+
+    def calculate_capture_ratio(self):
+        # keep track of the ratio of complete 6.098
+        # captures vs total.
+        self.logger.info(f"Attempting to calculate capture ratio.")
+        self.num_complete_captures = []
+        self.num_captures = []
+        # loop through all edeps
+        for ii, truth in enumerate(self.edep_neutron_ids):
+            complete = 0
+            total = 0
+            clusters = np.unique(truth)
+            for cluster in clusters:
+                indices = np.where(truth==cluster)
+                true_energies = sum(self.edep_energy[ii][indices])
+                total += 1
+                if round(true_energies,2) == 6.1:
+                    complete += 1
+            self.num_captures.append(total)
+            self.num_complete_captures.append(complete)
+        self.capture_ratio = round((sum(self.num_complete_captures)/sum(self.num_captures))*100)
 
     def load_array(self,
         input_file,
