@@ -7,13 +7,13 @@ import scipy as sp
 import matplotlib.pyplot as plt
 import os
 import sys
-sys.path.append("src/")
+sys.path.append("../src/")
 import csv
 from neutron_dataset import NeutronCosmicDataset
 
-training_dir = "../neutron_data/"
+training_dir = "../../neutron_data/"
 
-training_output = "training/"
+training_output = "../sparse_unet/training/"
 if not os.path.isdir(training_output):
     os.mkdir(training_output)
 
@@ -34,9 +34,9 @@ for training_file in training_files:
     )
 
 # create test set
-testing_dir = "../neutron_data/"
+testing_dir = "../../neutron_data/"
 
-testing_output = "testing/"
+testing_output = "../sparse_unet/testing/"
 if not os.path.isdir(testing_output):
     os.mkdir(testing_output)
 

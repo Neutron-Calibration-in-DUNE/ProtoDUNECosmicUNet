@@ -1,5 +1,6 @@
 """
 Collection of classes for generating cosmic ray datasets
+for training and clustering from LArSoft output.
 """
 # imports
 import numpy as np
@@ -18,60 +19,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
 from unet_logger import UNetLogger
-import MinkowskiEngine as ME
-
-
-required_neutron_arrays = [
-    'event_id',
-    'neutron_ids',
-    'neutron_capture_x',
-    'neutron_capture_y',
-    'neutron_capture_z',
-    'gamma_ids',
-    'gamma_neutron_ids',
-    'gamma_energy',
-    'edep_energy',
-    'edep_parent',
-    'edep_neutron_ids',
-    'edep_gamma_ids',
-    'edep_x',
-    'edep_y',
-    'edep_z',
-    'electron_ids',
-    'electron_neutron_ids',
-    'electron_gamma_ids',
-    'electron_energy',
-    'edep_num_electrons',
-]
-
-required_muon_arrays = [
-    'primary_muons',
-    'muon_ids',
-    'muon_edep_ids',
-    'muon_edep_energy',
-    'muon_edep_num_electrons',
-    'muon_edep_x',
-    'muon_edep_y',
-    'muon_edep_z',
-]
-
-required_voxel_arrays = [
-    "x_min", 
-    "x_max", 
-    "y_min", 
-    "y_max", 
-    "z_min", 
-    "z_max", 
-    "voxel_size", 
-    "num_voxels_x",
-    "num_voxels_y",
-    "num_voxels_z",
-    "x_id", 
-    "y_id", 
-    "z_id", 
-    "values",
-    "labels",
-]
+from parameters import *
 
 class NeutronCosmicDataset:
     """
@@ -79,42 +27,10 @@ class NeutronCosmicDataset:
     algorithms and analysis.  The arrays in the root file should be structured
     as follows:
         meta:       meta information such as ...
-        Geometry:   information about the detector geometry such as volume bounding boxes...
+        geometry:   information about the detector geometry such as volume bounding boxes...
         neutron:    the collection of neutron event information from the simulation
         muon:       the collection of muon event information
         voxels:     the collection of voxelized truth/reco information
-        
-    The "neutron" array should have the following entries:
-        event_id:           the event id for each event (e.g. [0, 7, 18, ...])
-        neutron_ids:        track id of each neutron in the event (e.g. [1, 2, 3, ...])
-        neutron_capture_x:  the x position of each neutron capture (e.g. [54, 154, ...])
-        neutron_capture_y:  the y position ""
-        neutron_capture_z:  the z position ""
-        gamma_ids:          track id of each gamma that comes from a neutron capture (e.g. [65, 66, ...])
-        gamma_neutron_ids:  the track id of the parent of each gamma (e.g. [1, 1, 1, 2, 2, ...])
-        gamma_energy (GeV): the energy values of each unique gamma in the event (e.g. [0.004745, ...])
-        edep_energy:        the energy values for each deposited energy from a gamma (e.g. [0.00038, ...])
-        edep_parent:        the track id of the particle which left the energy deposit ^^^
-        edep_neutron_ids:   the track id of the neutron which led to the energy deposit ^^^
-        edep_gamma_ids:     the track id of the gamma which left behind each edep in "edep_energy" (e.g. [65, 65, 65, ...])
-        edep_x (mm):        the x position of each edep in the event (e.g. [-42, 500.1, ...])
-        edep_y (mm):        the y position ""
-        edep_z (mm):        the z position ""
-        electron_ids:           the track id of each electron tracked in the simulation that comes from a gamma
-        electron_neutron_ids:   the corresponding id of the neutron that generated the electron with id ^^^
-        electron_gamma_ids:     the corresponding id of the gamma that generated the electron with id ^^^
-        electron_energy (GeV):  the energy of each electron tracked in the simulation (e.g. [0.00058097, ...])
-        edep_num_electrons:     the number of electrons coming out of the IonAndScint simulation for each edep ^^^
-    
-    The "muon" array should have the following entries:
-        primary_muons:      the number of muons in the event
-        muon_ids:           the track ids of the muons
-        muon_edep_ids:      the track id of the corresponding muon that left the energy deposit
-        muon_edep_energy:   the energy values of each unique deposit
-        muon_edep_num_electrons:    the number of electrons generated from each energy deposit
-        muon_edep_x:        the x position of each edep from muons
-        muon_edep_y:        the y ""
-        muon_edep_z:        the z ""
     """
     def __init__(self,
         input_file,
@@ -136,6 +52,8 @@ class NeutronCosmicDataset:
         except Exception:
             self.logger.error(f"Failed to load file with exception: {Exception}.")
             raise Exception
+        if not os.path.isdir("plots/"):
+            os.mkdir("plots/")
         # now load the various arrays
         self.meta       = self.load_array(self.input_file, 'ana/meta')
         self.geometry   = self.load_array(self.input_file, 'ana/Geometry')
@@ -200,8 +118,8 @@ class NeutronCosmicDataset:
                 self.x_id   = self.voxels['x_id']
                 self.y_id   = self.voxels['y_id']
                 self.z_id   = self.voxels['z_id']
-                self.values = self.voxels['values']
-                self.labels = self.voxels['labels']
+                self.voxel_values = self.voxels['values']
+                self.voxel_labels = self.voxels['labels']
             except:
                 self.logger.error(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
                 raise ValueError(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
@@ -234,6 +152,20 @@ class NeutronCosmicDataset:
                 ], 
                 dtype=object
             )
+        if self.load_voxels:
+            self.voxel_coords = np.array([
+                [
+                    [self.x_id[j][i],
+                    self.y_id[j][i],
+                    self.z_id[j][i]]
+                    for i in range(len(self.x_id[j]))
+                ]
+                for j in range(len(self.x_id))
+            ])
+            self.discrete_voxel_values = [
+                [[1.] for i in range(len(self.voxel_values[i]))] 
+                    for i in range(len(self.voxel_values))
+                ]
         # construct TPC boxes
         self.total_tpc_ranges = self.geometry['total_active_tpc_box_ranges']
         self.tpc_x = [self.total_tpc_ranges[0][0], self.total_tpc_ranges[0][1]]
@@ -287,33 +219,31 @@ class NeutronCosmicDataset:
         return array
 
     def plot_event(self,
-        index,
+        event,
         title:  str='',
         show_active_tpc: bool=True,
         show_cryostat:   bool=True,
         save:   str='',
         show:   bool=True,
     ):
-        if index >= self.num_events:
-            self.logger.error(f"Tried accessing element {index} of array with size {self.num_events}!")
-            raise IndexError(f"Tried accessing element {index} of array with size {self.num_events}!")
+        if event >= self.num_events:
+            self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
+            raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
         fig = plt.figure(figsize=(8,6))
         axs = fig.add_subplot(projection='3d')
         if self.load_neutrons:
             axs.scatter3D(
-                self.neutron_x[index], 
-                self.neutron_z[index], 
-                self.neutron_y[index], 
+                self.neutron_x[event], 
+                self.neutron_z[event], 
+                self.neutron_y[event], 
                 label='neutrons', 
-                #s=1000*self.edep_energy[index]
             )
         if self.load_muons:
             axs.scatter3D(
-                self.muon_edep_x[index],
-                self.muon_edep_z[index], 
-                self.muon_edep_y[index], 
+                self.muon_edep_x[event],
+                self.muon_edep_z[event], 
+                self.muon_edep_y[event], 
                 label='cosmics', 
-                #s=1000*self.muon_edep_energy[index]
             )
         axs.set_xlabel("x (mm)")
         axs.set_ylabel("z (mm)")
@@ -344,42 +274,274 @@ class NeutronCosmicDataset:
             plt.savefig('plots/'+save+'.png')
         if show:
             plt.show()
+    
+    def plot_event_neutrons(self,
+        event,
+        label:  str='neutron',  # plot by neutron, gamma, electron
+        title:  str='',
+        legend_cutoff:  int=10, # only show the first N labels in the legend (gets crammed easily)
+        show_active_tpc: bool=True,
+        show_cryostat:   bool=True,
+        save:   str='',
+        show:   bool=True,
+    ):
+        if event >= self.num_events:
+            self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
+            raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
+        if label not in ['neutron', 'gamma']:
+            self.logger.warning(f"Requested labeling by '{label}' not allowed, using 'neutron'.")
+            label = 'neutron'
+        fig = plt.figure(figsize=(8,6))
+        axs = fig.add_subplot(projection='3d')
+        x, y, z, ids, energy = [], [], [], [], []
+        indices = []
+        if label == 'neutron':
+            labels = np.unique(self.edep_neutron_ids[event])
+            for ii, value in enumerate(labels):
+                indices.append(np.where(self.edep_neutron_ids[event] == value))
+        else:
+            labels = np.unique(self.edep_gamma_ids[event])
+            for ii, value in enumerate(labels):
+                indices.append(np.where(self.edep_gamma_ids[event] == value))
+        for ii, value in enumerate(labels):
+            x.append([self.neutron_x[event][indices[ii]]])
+            y.append([self.neutron_z[event][indices[ii]]])
+            z.append([self.neutron_y[event][indices[ii]]])
+            energy.append([1000*self.edep_energy[event][indices[ii]]])
+            ids.append(f'{label} {ii}: (id: {value}, energy: {round(sum(self.edep_energy[event][indices[ii]]),4)} MeV)')
+        for jj in range(len(x)):
+            if jj < legend_cutoff:
+                axs.scatter3D(x[jj], y[jj], z[jj], label=ids[jj], s=energy[jj])
+            else:
+                axs.scatter3D(x[jj], y[jj], z[jj], s=energy[jj])
+        axs.set_xlabel("x (mm)")
+        axs.set_ylabel("z (mm)")
+        axs.set_zlabel("y (mm)")
+        axs.set_title(title)
+        # draw the active tpc volume box
+        if show_active_tpc:
+            for i in range(len(self.active_tpc_lines)):
+                x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
+                y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
+                z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
+                if i == 0:
+                    axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
+                else:
+                    axs.plot(x,y,z,linestyle='--',color='b')
+        if show_cryostat:
+            for i in range(len(self.cryostat_lines)):
+                x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
+                y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
+                z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
+                if i == 0:
+                    axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
+                else:
+                    axs.plot(x,y,z,linestyle=':',color='g')
+        plt.legend()
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
+
+    def fit_depth_exponential(self,
+        num_bins:   int=100,
+        save:   str='',
+        show:   bool=True
+    ):
+        y_pos = np.concatenate([yi for yi in self.neutron_y]).flatten()
+        # normalize positions
+        y_max = np.max(y_pos)
+        depth = np.abs(y_max - y_pos)
+        # fit histogram
+        y_hist, y_edges = np.histogram(depth, bins=num_bins)
+        hist_sum = sum(y_hist)
+        y_hist = y_hist.astype(float) / hist_sum
+        # determine cumulative hist
+        cum_hist = [y_hist[0]]
+        for ii in range(1,len(y_hist)):
+            cum_hist.append(y_hist[ii]+cum_hist[-1])
+        # arrange mid points for fit
+        mid_points = np.array([y_edges[ii] + (y_edges[ii+1]-y_edges[ii])/2. for ii in range(len(y_hist))])
+        # fit to logarithm
+        exp_fit = sp.optimize.curve_fit(
+            lambda t,a,b: a*np.exp(-b*t),   # decaying exponential
+            mid_points, 
+            y_hist
+        )
+        exp_function = exp_fit[0][0] * np.exp(-exp_fit[0][1] * mid_points)
+        # plot the results
+        fig, axs = plt.subplots(figsize=(8,6))
+        axs.scatter(mid_points, y_hist, label='hist')
+        axs.plot(
+            mid_points, 
+            exp_function, 
+            label=rf'fit ($\sim\exp[-{round(exp_fit[0][1],3)}\, \Delta y]$)'
+        )
+        axs.set_xlabel(r'depth - $\Delta y$ - (mm)')
+        axs.set_ylabel('density (height/sum)')
+        plt.legend(loc='center right')
+        axs2 = axs.twinx()
+        axs2.plot(
+            mid_points,
+            cum_hist,
+        )
+        axs2.set_ylabel('cummulative %')
+        axs.set_title('Capture density vs. depth (mm)')
+        plt.grid(True)
+        
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
+    
+    def plot_capture_locations(self,
+        event:          int,
+        plot_type:      str='3d',
+        show_active_tpc:bool=True,
+        show_cryostat:  bool=True,
+        title:  str='Example MC Capture Locations',
+        save:   str='',
+        show:   bool=True,
+    ):
+        if event >= self.num_events:
+            self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
+            raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
+        if plot_type not in ['3d', 'xy', 'xz', 'yz']:
+            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
+            plot_type = '3d'
+        if plot_type == '3d':
+            fig = plt.figure(figsize=(8,6))
+            axs = fig.add_subplot(projection='3d')
+            axs.scatter(
+                self.neutron_capture_x[event],
+                self.neutron_capture_z[event],
+                self.neutron_capture_y[event]
+            )
+            axs.set_xlabel("x (mm)")
+            axs.set_ylabel("z (mm)")
+            axs.set_zlabel("y (mm)")
+            # draw the active tpc volume box
+        else:
+            fig, axs = plt.subplots(figsize=(8,6))
+            if plot_type == 'xz':
+                axs.scatter(self.neutron_capture_x[event], self.neutron_capture_z[event])
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("z (mm)")
+            elif plot_type == 'yz':
+                axs.scatter(self.neutron_capture_y[event], self.neutron_capture_z[event])
+                axs.set_xlabel("y (mm)")
+                axs.set_ylabel("z (mm)")
+            else:
+                axs.scatter(self.neutron_capture_x[event], self.neutron_capture_y[event])
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("y (mm)")
+        if show_active_tpc:
+            for i in range(len(self.active_tpc_lines)):
+                x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
+                y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
+                z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(x,y,z,linestyle='--',color='b')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(x,y,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(x,y,linestyle='--',color='b')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(z,y,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(z,y,linestyle='--',color='b')
+                else:
+                    if i == 0:
+                        axs.plot(x,z,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(x,z,linestyle='--',color='b')
+        if show_cryostat:
+            for i in range(len(self.cryostat_lines)):
+                x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
+                y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
+                z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(x,y,z,linestyle=':',color='g')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(x,y,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(x,y,linestyle=':',color='g')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(z,y,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(z,y,linestyle=':',color='g')
+                else:
+                    if i == 0:
+                        axs.plot(x,z,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(x,z,linestyle=':',color='g')
+        axs.set_title(title)
+        plt.legend()
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
+
+    def plot_capture_density(self,
+        plot_type:      str='xy',
+        density_type:   str='kde',
+        title:  str='Example MC Capture Locations',
+        save:   str='',
+        show:   bool=True,
+    ):
+        if plot_type not in ['xy', 'xz', 'yz']:
+            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using 'xy'.")
+            plot_type = 'xy'
+        if density_type not in ['scatter', 'kde', 'hist', 'hex', 'reg', 'resid']:
+            self.logger.warning(f"Requested density type {density_type} not allowed, using 'kde'.")
+            density_type = 'kde'
+        if plot_type == 'xz':
+            x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
+            y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
+        elif plot_type == 'yz':
+            x = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
+            y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
+        else:
+            x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
+            y = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
+        sns.jointplot(x=x, y=y, kind=density_type, palette='crest')
+        if plot_type == 'xz':
+            plt.xlabel("x (mm)")
+            plt.ylabel("z (mm)")
+        elif plot_type == 'yz':
+            plt.xlabel("y (mm)")
+            plt.ylabel("z (mm)")
+        else:
+            plt.xlabel("x (mm)")
+            plt.ylabel("y (mm)")
+        plt.title(title)
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
 
     def generate_unet_training(self,
         output_file:    str
     ):
         self.logger.info(f"Attempting to generate voxel dataset {output_file}.")
-        voxel_coords = np.array([
-            [
-                [self.x_id[j][i],
-                 self.y_id[j][i],
-                 self.z_id[j][i]]
-                for i in range(len(self.x_id[j]))
-            ]
-            for j in range(len(self.x_id))
-        ])
-        feats = [[[1.] for i in range(len(self.values[i]))] for i in range(len(self.values))]
         np.savez(output_file,
-            coords=voxel_coords,
-            feats = feats,
-            labels= self.labels,
-            energy= self.values
+            coords= self.voxel_coords,
+            feats = self.discrete_voxel_values,
+            labels= self.voxel_labels,
+            energy= self.voxel_values
         )
         self.logger.info(f"Saved voxel dataset to {output_file}.")
-
-
-if __name__ == "__main__":
-
-    dataset = NeutronCosmicDataset(
-        input_file="../neutron_data/protodune_cosmic_voxels.root"
-    )
-
-    dataset.generate_unet_training(
-        output_file="../neutron_data/unet_dataset.npz",
-    )
-
-    dataset.plot_event(
-        index=0,
-        title='ProtoDUNE cosmic example',
-        save='protondune_cosmic_g4'
-    )

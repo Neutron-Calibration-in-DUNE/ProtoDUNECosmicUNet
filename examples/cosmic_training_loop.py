@@ -8,7 +8,8 @@ import torch
 import torchvision
 import torch.nn as nn
 import sys
-sys.path.append('src/')
+sys.path.append('../src/')
+sys.path.append('../src/cosmic_sparse_unet/')
 
 from unet_model import SparseUNet
 from unet_dataset import NeutronUNetDataset
@@ -46,13 +47,13 @@ cosmic_trainer = SparseTrainer(
 )
 
 # define training and testing sets
-training_dir = "training/"
+training_dir = "../sparse_unet/training/"
 training_files = [
     "protodune_cosmic_voxels_0.npz",
     "protodune_cosmic_voxels_1.npz",
     "protodune_cosmic_voxels_2.npz",
 ]
-testing_dir = "testing/"
+testing_dir = "../sparse_unet/testing/"
 testing_file = "protodune_cosmic_voxels_3.npz"
 
 # now iterate over training datasets.

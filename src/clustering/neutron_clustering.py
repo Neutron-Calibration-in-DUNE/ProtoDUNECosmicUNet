@@ -9,6 +9,7 @@ import pandas as pd
 import uproot
 import os
 import sys
+sys.path.append("../")
 import math
 import csv
 import logging
@@ -234,75 +235,6 @@ class NeutronClusteringMCTruth:
             [[self.cryo_x[1],self.cryo_y[1],self.cryo_z[0]],[self.cryo_x[1],self.cryo_y[1],self.cryo_z[1]]],
         ]
 
-    def plot_event(self,
-        index,
-        label:  str='neutron',  # plot by neutron, gamma, electron
-        title:  str='',
-        legend_cutoff:  int=10, # only show the first N labels in the legend (gets crammed easily)
-        show_active_tpc: bool=True,
-        show_cryostat:   bool=True,
-        save:   str='',
-        show:   bool=True,
-    ):
-        if index >= self.num_events:
-            logging.error(f"Tried accessing element {index} of array with size {self.num_events}!")
-            raise IndexError(f"Tried accessing element {index} of array with size {self.num_events}!")
-        if label not in ['neutron', 'gamma']:
-            logging.warning(f"Requested labeling by '{label}' not allowed, using 'neutron'.")
-            label = 'neutron'
-        fig = plt.figure(figsize=(8,6))
-        axs = fig.add_subplot(projection='3d')
-        x, y, z, ids, energy = [], [], [], [], []
-        indices = []
-        if label == 'neutron':
-            labels = np.unique(self.edep_neutron_ids[index])
-            for ii, value in enumerate(labels):
-                indices.append(np.where(self.edep_neutron_ids[index] == value))
-        else:
-            labels = np.unique(self.edep_gamma_ids[index])
-            for ii, value in enumerate(labels):
-                indices.append(np.where(self.edep_gamma_ids[index] == value))
-        for ii, value in enumerate(labels):
-            x.append([self.x[index][indices[ii]]])
-            y.append([self.z[index][indices[ii]]])
-            z.append([self.y[index][indices[ii]]])
-            energy.append([1000*self.edep_energy[index][indices[ii]]])
-            ids.append(f'{label} {ii}: (id: {value}, energy: {round(sum(self.edep_energy[index][indices[ii]]),4)} MeV)')
-        for jj in range(len(x)):
-            if jj < legend_cutoff:
-                axs.scatter3D(x[jj], y[jj], z[jj], label=ids[jj], s=energy[jj])
-            else:
-                axs.scatter3D(x[jj], y[jj], z[jj], s=energy[jj])
-        axs.set_xlabel("x (mm)")
-        axs.set_ylabel("z (mm)")
-        axs.set_zlabel("y (mm)")
-        axs.set_title(title)
-        # draw the active tpc volume box
-        if show_active_tpc:
-            for i in range(len(self.active_tpc_lines)):
-                x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
-                y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
-                z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
-                if i == 0:
-                    axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
-                else:
-                    axs.plot(x,y,z,linestyle='--',color='b')
-        if show_cryostat:
-            for i in range(len(self.cryostat_lines)):
-                x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
-                y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
-                z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
-                if i == 0:
-                    axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
-                else:
-                    axs.plot(x,y,z,linestyle=':',color='g')
-        plt.legend()
-        plt.tight_layout()
-        if save != '':
-            plt.savefig('plots/'+save+'.png')
-        if show:
-            plt.show()
-
     def cluster(self,
         level:  str='neutron',
         alg:    str='dbscan',
@@ -481,146 +413,7 @@ class NeutronClusteringMCTruth:
             plt.savefig('plots/'+save+'.png')
         if show:
             plt.show()
-    
-    def plot_capture_locations(self,
-        event:  int,
-        plot_type:   str='3d',
-        show_active_tpc:    bool=True,
-        show_cryostat:      bool=True,
-        title:  str='Example MC Capture Locations',
-        save:   str='',
-        show:   bool=True,
-    ):
-        if event >= self.num_events:
-            logging.error(f"Tried accessing element {event} of array with size {self.num_events}!")
-            raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
-        if plot_type not in ['3d', 'xy', 'xz', 'yz']:
-            logging.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
-            plot_type = '3d'
-        if plot_type == '3d':
-            fig = plt.figure(figsize=(8,6))
-            axs = fig.add_subplot(projection='3d')
-            axs.scatter(
-                self.neutron_capture_x[event],
-                self.neutron_capture_z[event],
-                self.neutron_capture_y[event]
-            )
-            axs.set_xlabel("x (mm)")
-            axs.set_ylabel("z (mm)")
-            axs.set_zlabel("y (mm)")
-            # draw the active tpc volume box
-        else:
-            fig, axs = plt.subplots(figsize=(8,6))
-            if plot_type == 'xz':
-                axs.scatter(self.neutron_capture_x[event], self.neutron_capture_z[event])
-                axs.set_xlabel("x (mm)")
-                axs.set_ylabel("z (mm)")
-            elif plot_type == 'yz':
-                axs.scatter(self.neutron_capture_y[event], self.neutron_capture_z[event])
-                axs.set_xlabel("y (mm)")
-                axs.set_ylabel("z (mm)")
-            else:
-                axs.scatter(self.neutron_capture_x[event], self.neutron_capture_y[event])
-                axs.set_xlabel("x (mm)")
-                axs.set_ylabel("y (mm)")
-        if show_active_tpc:
-            for i in range(len(self.active_tpc_lines)):
-                x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
-                y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
-                z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
-                if plot_type == '3d':
-                    if i == 0:
-                        axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
-                    else:
-                        axs.plot(x,y,z,linestyle='--',color='b')
-                elif plot_type == 'xz':
-                    if i == 0:
-                        axs.plot(x,y,linestyle='--',color='b',label='Active TPC volume')
-                    else:
-                        axs.plot(x,y,linestyle='--',color='b')
-                elif plot_type == 'yz':
-                    if i == 0:
-                        axs.plot(z,y,linestyle='--',color='b',label='Active TPC volume')
-                    else:
-                        axs.plot(z,y,linestyle='--',color='b')
-                else:
-                    if i == 0:
-                        axs.plot(x,z,linestyle='--',color='b',label='Active TPC volume')
-                    else:
-                        axs.plot(x,z,linestyle='--',color='b')
-        if show_cryostat:
-            for i in range(len(self.cryostat_lines)):
-                x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
-                y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
-                z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
-                if plot_type == '3d':
-                    if i == 0:
-                        axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
-                    else:
-                        axs.plot(x,y,z,linestyle=':',color='g')
-                elif plot_type == 'xz':
-                    if i == 0:
-                        axs.plot(x,y,linestyle=':',color='g',label='Cryostat volume')
-                    else:
-                        axs.plot(x,y,linestyle=':',color='g')
-                elif plot_type == 'yz':
-                    if i == 0:
-                        axs.plot(z,y,linestyle=':',color='g',label='Cryostat volume')
-                    else:
-                        axs.plot(z,y,linestyle=':',color='g')
-                else:
-                    if i == 0:
-                        axs.plot(x,z,linestyle=':',color='g',label='Cryostat volume')
-                    else:
-                        axs.plot(x,z,linestyle=':',color='g')
-        axs.set_title(title)
-        plt.legend()
-        plt.tight_layout()
-        if save != '':
-            plt.savefig('plots/'+save+'.png')
-        if show:
-            plt.show()
-    
-    def plot_capture_density(self,
-        plot_type:   str='xy',
-        density_type:       str='kde',
-        show_active_tpc:    bool=True,
-        show_cryostat:      bool=True,
-        title:  str='Example MC Capture Locations',
-        save:   str='',
-        show:   bool=True,
-    ):
-        if plot_type not in ['xy', 'xz', 'yz']:
-            logging.warning(f"Requested plot type '{plot_type}' not allowed, using 'xy'.")
-            plot_type = 'xy'
-        if density_type not in ['scatter', 'kde', 'hist', 'hex', 'reg', 'resid']:
-            logging.warning(f"Requested density type {density_type} not allowed, using 'kde'.")
-            density_type = 'kde'
-        if plot_type == 'xz':
-            x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
-            y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
-        elif plot_type == 'yz':
-            x = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
-            y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
-        else:
-            x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
-            y = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
-        sns.jointplot(x=x, y=y, kind=density_type, palette='crest')
-        if plot_type == 'xz':
-            plt.xlabel("x (mm)")
-            plt.ylabel("z (mm)")
-        elif plot_type == 'yz':
-            plt.xlabel("y (mm)")
-            plt.ylabel("z (mm)")
-        else:
-            plt.xlabel("x (mm)")
-            plt.ylabel("y (mm)")
-        plt.title(title)
-        plt.tight_layout()
-        if save != '':
-            plt.savefig('plots/'+save+'.png')
-        if show:
-            plt.show()
+
 
     def scan_eps_values(self,
         eps_range:  list=[1.,100.],
@@ -683,58 +476,6 @@ class NeutronClusteringMCTruth:
         if show:
             plt.show()
     
-    def fit_depth_exponential(self,
-        num_bins:   int=100,
-        save:   str='',
-        show:   bool=True
-    ):
-        y_pos = np.concatenate([yi for yi in self.y]).flatten()
-        # normalize positions
-        y_max = np.max(y_pos)
-        depth = np.abs(y_max - y_pos)
-        # fit histogram
-        y_hist, y_edges = np.histogram(depth, bins=num_bins)
-        hist_sum = sum(y_hist)
-        y_hist = y_hist.astype(float) / hist_sum
-        # determine cumulative hist
-        cum_hist = [y_hist[0]]
-        for ii in range(1,len(y_hist)):
-            cum_hist.append(y_hist[ii]+cum_hist[-1])
-        # arrange mid points for fit
-        mid_points = np.array([y_edges[ii] + (y_edges[ii+1]-y_edges[ii])/2. for ii in range(len(y_hist))])
-        # fit to logarithm
-        exp_fit = sp.optimize.curve_fit(
-            lambda t,a,b: a*np.exp(-b*t),   # decaying exponential
-            mid_points, 
-            y_hist
-        )
-        exp_function = exp_fit[0][0] * np.exp(-exp_fit[0][1] * mid_points)
-        # plot the results
-        fig, axs = plt.subplots(figsize=(8,6))
-        axs.scatter(mid_points, y_hist, label='hist')
-        axs.plot(
-            mid_points, 
-            exp_function, 
-            label=rf'fit ($\sim\exp[-{round(exp_fit[0][1],3)}\, \Delta y]$)'
-        )
-        axs.set_xlabel(r'depth - $\Delta y$ - (mm)')
-        axs.set_ylabel('density (height/sum)')
-        plt.legend(loc='center right')
-        axs2 = axs.twinx()
-        axs2.plot(
-            mid_points,
-            cum_hist,
-        )
-        axs2.set_ylabel('cummulative %')
-        axs.set_title('Capture density vs. depth (mm)')
-        plt.grid(True)
-        
-        plt.tight_layout()
-        if save != '':
-            plt.savefig('plots/'+save+'.png')
-        if show:
-            plt.show()
-    
 
 
 if __name__ == "__main__":
@@ -742,39 +483,7 @@ if __name__ == "__main__":
     neutron_clustering = NeutronClusteringMCTruth(
         "../neutron_data/simple_sims/NeutronDataset_50_1450.root"
     )
-    neutron_clustering.fit_depth_exponential(
-        num_bins=100,
-        save='depth_exp'
-    )
-
-    # plot 3d and xz views of capture locations
-    # neutron_clustering.plot_capture_locations(
-    #     event = 0,
-    #     plot_type = '3d',
-    #     title = 'Example Capture Locations (FDSP 1x2x6)',
-    #     save = 'fdsp_1x2x6_3d',
-    #     show = False
-    # )
-    # neutron_clustering.plot_capture_locations(
-    #     event = 0,
-    #     plot_type = 'xz',
-    #     title = 'Example Capture Locations (FDSP 1x2x6)',
-    #     save = 'fdsp_1x2x6_xz',
-    #     show = False
-    # )
-    # neutron_clustering.plot_capture_locations(
-    #     event = 0,
-    #     plot_type = 'xy',
-    #     title = 'Example Capture Locations (FDSP 1x2x6)',
-    #     save = 'fdsp_1x2x6_xy',
-    #     show = False
-    # )
-    # neutron_clustering.plot_capture_density(
-    #     plot_type = 'xy',
-    #     density_type ='hex',
-    #     save = 'fdsp_1x2x6_xy_hex',
-    #     show = False
-    # )
+    
     # neutron_clustering.plot_eps_scores(
     #     input_file = "scan_scores.csv",
     #     save = 'scan_scores'
@@ -802,10 +511,4 @@ if __name__ == "__main__":
     # neutron_clustering.plot_prediction_spectrum(
     #     edep_type = 'compare',
     #     save = 'clustering_spectrum'
-    # )
-    # neutron_clustering.plot_event(
-    #     index = 10, 
-    #     label = 'neutron',
-    #     title = 'Example Capture',
-    #     save = 'example_event' 
     # )
