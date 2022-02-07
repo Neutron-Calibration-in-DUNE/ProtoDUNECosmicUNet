@@ -407,17 +407,17 @@ class SparseTrainer:
             # forward + backward
             with torch.no_grad():
                 outputs = self.model(ME.SparseTensor(feats.float(), coords, device=self.device))
-                loss = self.criterion(outputs.F.squeeze(), labels.to(self.device))
-                if dataset_loader.weights == True:
-                    loss = (loss * weights.to(self.device) / weights.sum().to(self.device)).sum()
-                if dataset_type == 'train':
-                    inference_loss += loss.item() / dataset_loader.num_train_batches
-                elif dataset_type == 'val':
-                    inference_loss += loss.item() / dataset_loader.num_val_batches
-                elif dataset_type == 'test':
-                    inference_loss += loss.item() / dataset_loader.num_test_batches
-                else:
-                    inference_loss += loss.item() / dataset_loader.num_all_batches
+                # loss = self.criterion(outputs.F.squeeze(), labels.to(self.device))
+                # if dataset_loader.weights == True:
+                #     loss = (loss * weights.to(self.device) / weights.sum().to(self.device)).sum()
+                # if dataset_type == 'train':
+                #     inference_loss += loss.item() / dataset_loader.num_train_batches
+                # elif dataset_type == 'val':
+                #     inference_loss += loss.item() / dataset_loader.num_val_batches
+                # elif dataset_type == 'test':
+                #     inference_loss += loss.item() / dataset_loader.num_test_batches
+                # else:
+                #     inference_loss += loss.item() / dataset_loader.num_all_batches
                 
                 saved_coords = np.concatenate((saved_coords, coords.cpu()))
                 saved_feats  = np.concatenate((saved_feats, feats.cpu()))
@@ -446,6 +446,7 @@ class SparseTrainer:
                 feats=saved_feats,
                 labels=saved_labels,
                 predictions=saved_predictions,
+                energy=dataset_loader.dataset.energy,
                 metrics=saved_metrics,
                 metric_names=self.metrics.metric_names,
             )

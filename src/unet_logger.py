@@ -1,5 +1,5 @@
 """
-Global logger for the UNet
+Global logger for SparseUNet/Clustering
 """
 import logging
 import platform,socket,re,uuid,json,psutil

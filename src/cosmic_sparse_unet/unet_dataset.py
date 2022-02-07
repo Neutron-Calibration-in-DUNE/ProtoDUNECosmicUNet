@@ -30,9 +30,14 @@ class NeutronUNetDataset(Dataset):
         self.logger.info(f"Attempting to construct UNet dataset from {input_file}.")
         super(NeutronUNetDataset, self).__init__()
         self.input_file = np.load(input_file, allow_pickle=True)
-        self.coords = self.input_file['coords']
-        self.feats  = self.input_file['feats']
-        self.labels = self.input_file['labels']
+        try:
+            self.coords = self.input_file['coords']
+            self.feats  = self.input_file['feats']
+            self.labels = self.input_file['labels']
+            self.energy = self.input_file['energy']
+        except Exception as e:
+            self.logger.error(f"One or more arrays not present in input file: {e}.")
+            raise ValueError(f"One or more arrays not present in input file: {e}.")
         self.num_events = len(self.coords)
         self.weights = None
 

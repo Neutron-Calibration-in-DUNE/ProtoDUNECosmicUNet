@@ -11,38 +11,15 @@ import os
 import sys
 import math
 import csv
-import logging
 from sklearn import cluster
 from sklearn import metrics
 import seaborn as sns
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
+from unet_logger import UNetLogger
 import MinkowskiEngine as ME
-#plt.style.use('seaborn-deep')
 
-# set up logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("protodune_cosmic.log"),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
-def load_array(
-    input_file,
-    array_name,
-):
-    logging.info(f"Attempting to load array: {array_name} from file: {input_file}.")
-    try:
-        array = input_file[array_name].arrays(library="np")
-        logging.info(f"Successfully loaded array: {array_name} from file: {input_file}.")
-    except Exception:
-        logging.error(f"Failed to load array: {array_name} from file: {input_file} with exception: {Exception}.")
-        raise Exception
-    return array
 
 required_neutron_arrays = [
     'event_id',
@@ -150,23 +127,24 @@ class NeutronCosmicDataset:
         self.load_muons    = load_muons
         self.load_ar39     = load_ar39
         self.load_voxels   = load_voxels
-        logging.info(f"Attempting to load file {input_file}.")
+        self.logger = UNetLogger('neutron_dataset', file_mode='w')
+        self.logger.info(f"Attempting to load file {input_file}.")
         # load the file
         try:
             self.input_file = uproot.open(input_file)
-            logging.info(f"Successfully loaded file {input_file}.")
+            self.logger.info(f"Successfully loaded file {input_file}.")
         except Exception:
-            logging.error(f"Failed to load file with exception: {Exception}.")
+            self.logger.error(f"Failed to load file with exception: {Exception}.")
             raise Exception
         # now load the various arrays
-        self.meta       = load_array(self.input_file, 'ana/meta')
-        self.geometry   = load_array(self.input_file, 'ana/Geometry')
+        self.meta       = self.load_array(self.input_file, 'ana/meta')
+        self.geometry   = self.load_array(self.input_file, 'ana/Geometry')
         if load_neutrons:
-            self.neutron    = load_array(self.input_file, 'ana/neutron')
+            self.neutron    = self.load_array(self.input_file, 'ana/neutron')
         if load_muons:
-            self.muon       = load_array(self.input_file, 'ana/muon')
+            self.muon       = self.load_array(self.input_file, 'ana/muon')
         if load_voxels:
-            self.voxels     = load_array(self.input_file, 'ana/voxels')
+            self.voxels     = self.load_array(self.input_file, 'ana/voxels')
 
         # construct truth info
         # each index in these arrays correspond to an event
@@ -193,7 +171,7 @@ class NeutronCosmicDataset:
                 self.electron_energy        = self.neutron['electron_energy']
                 self.edep_num_electrons     = self.neutron['edep_num_electrons']
             except:
-                logging.error(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
+                self.logger.error(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
                 raise ValueError(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
         if self.load_muons:
             try: 
@@ -205,7 +183,7 @@ class NeutronCosmicDataset:
                 self.muon_edep_y        = self.muon['muon_edep_y']
                 self.muon_edep_z        = self.muon['muon_edep_z'] 
             except:
-                logging.error(f"One or more of the required arrays {required_muon_arrays} is not present in {self.muon.keys()}.")
+                self.logger.error(f"One or more of the required arrays {required_muon_arrays} is not present in {self.muon.keys()}.")
                 raise ValueError(f"One or more of the required arrays {required_muon_arrays} is not present in {self.muon.keys()}.")
         if self.load_voxels:
             try:
@@ -225,10 +203,10 @@ class NeutronCosmicDataset:
                 self.values = self.voxels['values']
                 self.labels = self.voxels['labels']
             except:
-                logging.error(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
+                self.logger.error(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
                 raise ValueError(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
         self.num_events = len(self.event_ids)
-        logging.info(f"Loaded arrays with {self.num_events} entries.")
+        self.logger.info(f"Loaded arrays with {self.num_events} entries.")
         if self.load_neutrons:
             # construct positions for neutrons
             self.neutron_edep_positions = np.array(
@@ -295,6 +273,19 @@ class NeutronCosmicDataset:
             [[self.cryo_x[1],self.cryo_y[1],self.cryo_z[0]],[self.cryo_x[1],self.cryo_y[1],self.cryo_z[1]]],
         ]
 
+    def load_array(self,
+        input_file,
+        array_name,
+    ):
+        self.logger.info(f"Attempting to load array: {array_name} from file: {input_file}.")
+        try:
+            array = input_file[array_name].arrays(library="np")
+            self.logger.info(f"Successfully loaded array: {array_name} from file: {input_file}.")
+        except Exception:
+            self.logger.error(f"Failed to load array: {array_name} from file: {input_file} with exception: {Exception}.")
+            raise Exception
+        return array
+
     def plot_event(self,
         index,
         title:  str='',
@@ -304,7 +295,7 @@ class NeutronCosmicDataset:
         show:   bool=True,
     ):
         if index >= self.num_events:
-            logging.error(f"Tried accessing element {index} of array with size {self.num_events}!")
+            self.logger.error(f"Tried accessing element {index} of array with size {self.num_events}!")
             raise IndexError(f"Tried accessing element {index} of array with size {self.num_events}!")
         fig = plt.figure(figsize=(8,6))
         axs = fig.add_subplot(projection='3d')
@@ -357,7 +348,7 @@ class NeutronCosmicDataset:
     def generate_unet_training(self,
         output_file:    str
     ):
-        logging.info(f"Attempting to generate voxel dataset {output_file}.")
+        self.logger.info(f"Attempting to generate voxel dataset {output_file}.")
         voxel_coords = np.array([
             [
                 [self.x_id[j][i],
@@ -371,10 +362,10 @@ class NeutronCosmicDataset:
         np.savez(output_file,
             coords=voxel_coords,
             feats = feats,
-            labels= self.labels
+            labels= self.labels,
+            energy= self.values
         )
-        logging.info(f"Saved voxel dataset to {output_file}.")
-
+        self.logger.info(f"Saved voxel dataset to {output_file}.")
 
 
 if __name__ == "__main__":
@@ -392,4 +383,3 @@ if __name__ == "__main__":
         title='ProtoDUNE cosmic example',
         save='protondune_cosmic_g4'
     )
-

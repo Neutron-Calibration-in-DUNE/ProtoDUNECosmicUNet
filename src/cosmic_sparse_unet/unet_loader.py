@@ -1,5 +1,5 @@
 """
-Generic data loader
+SparseUNet data loader
 """
 from torch.utils.data import DataLoader, random_split
 import MinkowskiEngine as ME
@@ -7,14 +7,14 @@ import sys
 
 from unet_logger import UNetLogger
 
-class GenericLoader():
+class SparseUNetLoader():
 
     def __init__(self,
         dataset,
         batch_size,
         validation_split:   float=0.0,
         test_split:         float=0.2,
-        num_workers:    int=0,
+        num_workers:        int=0,
     ):
         self.logger = UNetLogger('loader', file_mode='w')
         self.logger.info("attempting to construct data loader")

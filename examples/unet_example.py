@@ -11,7 +11,7 @@ sys.path.append('src/')
 
 from unet_model import SparseUNet
 from unet_dataset import NeutronUNetDataset
-from unet_loader import GenericLoader
+from unet_loader import SparseUNetLoader
 from unet_metrics import SparseBinarySemanticSegmentationMetrics
 from unet_losses import GenericLoss
 from unet_optimizers import GenericOptimizer
@@ -24,7 +24,7 @@ cosmic_dataset = NeutronUNetDataset(
     "../neutron_data/unet_dataset.npz",
 )
 
-cosmic_loader = GenericLoader(
+cosmic_loader = SparseUNetLoader(
     cosmic_dataset, 
     batch_size=5,
     num_workers=1,
