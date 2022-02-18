@@ -56,7 +56,7 @@ class NeutronCosmicDataset:
             os.mkdir("plots/")
         # now load the various arrays
         self.meta       = self.load_array(self.input_file, 'ana/meta')
-        self.geometry   = self.load_array(self.input_file, 'ana/Geometry')
+        self.geometry   = self.load_array(self.input_file, 'ana/geometry')
         if load_neutrons:
             self.neutron    = self.load_array(self.input_file, 'ana/neutron')
         if load_muons:

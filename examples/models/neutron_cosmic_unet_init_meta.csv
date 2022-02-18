@@ -1,5 +1,5 @@
 Meta information for model neutron_cosmic_unet
-date:	02/07/2022 12:03:01
+date:	02/15/2022 14:45:52
 user:	ncarrara
 user_id:	1000
 System information:
@@ -7,11 +7,11 @@ platform	Linux
 platform-release	5.13.0-28-generic
 platform-version	#31~20.04.1-Ubuntu SMP Wed Jan 19 14:08:10 UTC 2022
 architecture	x86_64
-hostname	ETJ0
+hostname	DAK0
 ip-address	127.0.1.1
-mac-address	fc:34:97:a6:55:7e
+mac-address	18:c0:4d:0f:cf:3c
 processor	x86_64
-ram	31 GB
+ram	63 GB
 
 Model configuration:
 

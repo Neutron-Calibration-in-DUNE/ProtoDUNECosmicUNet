@@ -7,7 +7,8 @@ import torch
 import torchvision
 import torch.nn as nn
 import sys
-sys.path.append('src/')
+sys.path.append('../src/')
+sys.path.append('../src/cosmic_sparse_unet/')
 
 from unet_model import SparseUNet
 from unet_dataset import NeutronUNetDataset
@@ -21,7 +22,8 @@ import numpy as np
 
 
 cosmic_dataset = NeutronUNetDataset(
-    "../neutron_data/unet_dataset.npz",
+    #"../../neutron_data/unet_dataset.npz",
+    "../../neutron_data/unet_dataset.root"
 )
 
 cosmic_loader = SparseUNetLoader(
