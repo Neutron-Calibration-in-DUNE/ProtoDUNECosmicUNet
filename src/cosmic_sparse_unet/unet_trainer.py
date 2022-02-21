@@ -425,9 +425,9 @@ class SparseTrainer:
                 saved_predictions = np.concatenate((saved_predictions, outputs.F.cpu()))
                 saved_metrics.append(self.metrics.inference_metrics(outputs, labels, 1.0))
                 if ii == 0:
-                    saved_events.append([0,len(coords)-1])
+                    saved_events.append([0,len(coords)])
                 else:
-                    saved_events.append([saved_events[ii-1][1]+1,saved_events[ii-1][1] + len(coords)-1])
+                    saved_events.append([saved_events[ii-1][1],saved_events[ii-1][1] + len(coords)])
                 if ii == 0:
                     saved_coords = np.delete(saved_coords, 0, 0)
                     saved_feats = np.delete(saved_feats, 0, 0)

@@ -150,12 +150,13 @@ class UNetAnalyzer:
         # collect variables
         for event in range(len(self.events)):
             begin = self.events[event][0]
-            end   = self.events[event][1]
+            end   = self.events[event][1]+1
             coords = self.coords[begin:end]
             feats  = self.feats[begin:end]
             labels = self.labels[begin:end]
             preds  = self.labels[begin:end]
             edep_idxs = self.edep_idxs[event]
+            print(len(coords),len(edep_idxs))
             # get truth spectrum
             truth_coords = coords[(labels == 0)]
             clusterer.fit(truth_coords)
