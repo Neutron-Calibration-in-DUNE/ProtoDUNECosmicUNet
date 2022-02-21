@@ -1,11 +1,11 @@
 Meta information for model neutron_cosmic_unet
-date:	02/07/2022 12:07:34
+date:	02/21/2022 11:49:12
 user:	ncarrara
 user_id:	1000
 System information:
 platform	Linux
-platform-release	5.13.0-28-generic
-platform-version	#31~20.04.1-Ubuntu SMP Wed Jan 19 14:08:10 UTC 2022
+platform-release	5.13.0-30-generic
+platform-version	#33~20.04.1-Ubuntu SMP Mon Feb 7 14:25:10 UTC 2022
 architecture	x86_64
 hostname	ETJ0
 ip-address	127.0.1.1

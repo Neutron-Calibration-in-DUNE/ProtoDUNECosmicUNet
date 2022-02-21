@@ -51,10 +51,10 @@ training_dir = "../sparse_unet/training/"
 training_files = [
     "protodune_cosmic_voxels_0.npz",
     "protodune_cosmic_voxels_1.npz",
-    "protodune_cosmic_voxels_2.npz",
+    #"protodune_cosmic_voxels_2.npz",
 ]
 testing_dir = "../sparse_unet/testing/"
-testing_file = "protodune_cosmic_voxels_3.npz"
+testing_file = "protodune_cosmic_voxels_2.npz"
 
 # now iterate over training datasets.
 for training_file in training_files:
@@ -73,7 +73,7 @@ for training_file in training_files:
     # train 
     cosmic_trainer.train(
         train_loader,
-        epochs=50,
+        epochs=100,
     )
 
 # save the final model

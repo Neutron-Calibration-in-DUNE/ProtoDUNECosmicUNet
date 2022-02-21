@@ -3,6 +3,7 @@ Generic analysis code for the unet results
 """
 import numpy as np
 import scipy as sp
+import uproot
 from matplotlib import pyplot as plt
 from unet_logger import UNetLogger
 from sklearn import cluster
@@ -20,6 +21,7 @@ class UNetAnalyzer:
 
     def __init__(self,
         input_file: str,
+        source_file:str,
     ):
         self.logger = UNetLogger('analysis', file_mode='w')
         input   = np.load(input_file, allow_pickle=True)
@@ -37,6 +39,25 @@ class UNetAnalyzer:
             self.preds = (self.preds > 0.0).astype(int)
             self.correct = (self.preds == self.labels)
             self.label_names = ['neutron','cosmic']
+        
+        source = uproot.open(source_file, allow_pickle=True)
+        self.edeps = source['ana/mc_energy_deposits']
+        self.edep_idxs = source['ana/mc_voxels']['edep_idxs'].array(library="np")
+        self.edep_x = self.edeps['edep_x'].array(library="np")
+        self.edep_y = self.edeps['edep_y'].array(library="np")
+        self.edep_z = self.edeps['edep_z'].array(library="np")
+        self.edep_positions = np.array(
+            [
+                np.array([[
+                    self.edep_x[jj][ii],
+                    self.edep_y[jj][ii],
+                    self.edep_z[jj][ii]]
+                    for ii in range(len(self.edep_x[jj]))
+                ], dtype=float)
+                for jj in range(len(self.edep_x))
+            ], 
+            dtype=object
+        )
         
     def plot_predictions(self,
         event:  int,
@@ -86,24 +107,28 @@ class UNetAnalyzer:
         plt.tight_layout()
         plt.show()
 
-    def cluster(self,
-        level:  str='truth',
+    def cluster_predictions(self,
+        level:      str='truth',
         remove_cosmic:  bool=True,
-        alg:    str='dbscan',
-        params: dict={'eps': 30./4.7,'min_samples': 6},
+        alg:        str='dbscan',
+        params:     dict={'eps': 14./4.7,'min_samples': 6},
+        num_bins:   int=100,
+        energy_cut: float=10.,   # MeV
+        title:      str='Example Prediction Spectrum',
+        save:       str='',
+        show:       bool=True,
     ):
         """
         Function for running clustering algorithms on events.
-        The level can be ['truth','prediction']
+        The level can be ['truth','prediction','compare']
         """
-        if level not in ['truth', 'prediction']:
+        if level not in ['truth', 'prediction','compare']:
             self.logger.warning(f"Requested cluster level by '{level}' not allowed, using 'truth'.")
             level = 'truth'
         if alg not in cluster_params.keys():
             self.logger.warning(f"Requested algorithm '{alg}' not allowed, using 'dbscan'.")
             alg = 'dbscan'
             params = cluster_params['dbscan']
-        # check params
         for item in params:
             if item not in cluster_params[alg]:
                 self.logger.error(f"Unrecognized parameter {item} for algorithm {alg}! Available parameters are {cluster_params[alg]}.")
@@ -120,8 +145,9 @@ class UNetAnalyzer:
             clusterer = cluster.GaussianMixture(**params)
         else:
             clusterer = cluster.DBSCAN(**params)
-        self.cluster_predictions = []
-
+        self.cluster_truth = []
+        self.cluster_preds = []
+        # collect variables
         for event in range(len(self.events)):
             begin = self.events[event][0]
             end   = self.events[event][1]
@@ -129,11 +155,57 @@ class UNetAnalyzer:
             feats  = self.feats[begin:end]
             labels = self.labels[begin:end]
             preds  = self.labels[begin:end]
+            edep_idxs = self.edep_idxs[event]
+            # get truth spectrum
+            truth_coords = coords[(labels == 0)]
+            clusterer.fit(truth_coords)
+            self.cluster_truth.append(clusterer.labels_)
+            # get prediction spectrum
             if remove_cosmic:
-                coords = coords[(preds == 0)]
-            clusterer.fit(coords)
-            self.cluster_predictions.append(clusterer.labels_)
-        print(self.cluster_predictions)
+                tmp_coords = coords[(preds == 0)]
+                tmp_edeps = np.array(edep_idxs[(preds == 0)])
+                tmp_edeps = [[tmp_edeps[i][j] for j in range(len(tmp_edeps[i]))] for i in range(len(tmp_edeps))]
+                tmp_edeps = [item for sublist in tmp_edeps for item in sublist]
+                edeps = self.edep_positions[event][tmp_edeps]
+                #clusterer.fit(tmp_coords)
+                clusterer.fit(edeps)
+                self.cluster_preds.append(clusterer.labels_)
+            else:
+                cluster.fit(coords)
+                self.cluster_preds.append(clusterer.labels_)
+    
+        truth_spectrum = []
+        prediction_spectrum = []
+        # construct truth spectrum
+        for ii, truth in enumerate(self.cluster_truth):
+            clusters = np.unique(truth)
+            for c in clusters:
+                indices = np.where(truth==c)
+                true_energies = sum(self.energy[ii][indices])
+                if true_energies < energy_cut:
+                    truth_spectrum.append(true_energies)  
+        # construct prediction spectrum
+        for ii, pred in enumerate(self.cluster_preds):
+            clusters = np.unique(pred)
+            for c in clusters:
+                indices = np.where(pred==c)
+                pred_energies = sum(self.energy[ii][indices])
+                if pred_energies < energy_cut:
+                    prediction_spectrum.append(pred_energies)  
+        fig, axs = plt.subplots()
+        if level == 'truth' or level == 'compare':
+            axs.hist(truth_spectrum, bins=num_bins, label='truth', histtype='step')
+        if level == 'prediction' or level == 'compare':
+            axs.hist(prediction_spectrum, bins=num_bins, label='pred', histtype='step')
+        axs.set_xlabel('Cluster Energy (MeV)')
+        axs.set_xticks([1, 2, 3, 4, 5, 6.098, 7, 8])
+        axs.set_title(title)
+        plt.legend()
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
         
         
 

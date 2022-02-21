@@ -9,7 +9,7 @@ import os
 import sys
 sys.path.append("../src/")
 import csv
-from neutron_dataset import NeutronCosmicDataset
+from neutron_dataset_new import NeutronCosmicDataset
 
 training_dir = "../../neutron_data/"
 
@@ -20,7 +20,7 @@ if not os.path.isdir(training_output):
 training_files = [
     "protodune_cosmic_voxels_0",
     "protodune_cosmic_voxels_1",
-    "protodune_cosmic_voxels_2",
+    #"protodune_cosmic_voxels_2",
 ]
 
 # iterate over the training files
@@ -40,7 +40,7 @@ testing_output = "../sparse_unet/testing/"
 if not os.path.isdir(testing_output):
     os.mkdir(testing_output)
 
-testing_file = "protodune_cosmic_voxels_3"
+testing_file = "protodune_cosmic_voxels_2"
 
 # create the testing set
 dataset = NeutronCosmicDataset(

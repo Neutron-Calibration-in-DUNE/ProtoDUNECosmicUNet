@@ -427,7 +427,7 @@ class SparseTrainer:
                 if ii == 0:
                     saved_events.append([0,len(coords)-1])
                 else:
-                    saved_events.append([saved_events[ii-1][1]+1,saved_events[ii-1][1] + len(coords)])
+                    saved_events.append([saved_events[ii-1][1]+1,saved_events[ii-1][1] + len(coords)-1])
                 if ii == 0:
                     saved_coords = np.delete(saved_coords, 0, 0)
                     saved_feats = np.delete(saved_feats, 0, 0)

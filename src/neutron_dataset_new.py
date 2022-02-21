@@ -35,10 +35,14 @@ class NeutronCosmicDataset:
     def __init__(self,
         input_file,
         load_neutrons:  bool=True,
-        load_voxels:    bool=True,
+        load_mc_edeps:  bool=True,
+        load_mc_voxels: bool=True,
+        load_reco_edeps:bool=True,
     ):
-        self.load_neutrons = load_neutrons
-        self.load_voxels   = load_voxels
+        self.load_neutrons  = load_neutrons
+        self.load_mc_edeps  = load_mc_edeps
+        self.load_mc_voxels = load_mc_voxels
+        self.load_reco_edeps= load_reco_edeps
         self.logger = UNetLogger('neutron_dataset', file_mode='w')
         self.logger.info(f"Attempting to load file {input_file}.")
         # load the file
@@ -55,8 +59,12 @@ class NeutronCosmicDataset:
         self.geometry   = self.load_array(self.input_file, 'ana/geometry')
         if load_neutrons:
             self.neutron    = self.load_array(self.input_file, 'ana/mc_neutron_captures')
-        if load_voxels:
-            self.voxels     = self.load_array(self.input_file, 'ana/mc_voxels')
+        if load_mc_edeps:
+            self.mc_edeps   = self.load_array(self.input_file, 'ana/mc_energy_deposits')
+        if load_mc_voxels:
+            self.mc_voxels     = self.load_array(self.input_file, 'ana/mc_voxels')
+        if load_reco_edeps:
+            self.reco_edeps = self.load_array(self.input_file, 'ana/reco_energy_deposits')
 
         # construct truth info
         # each index in these arrays correspond to an event
@@ -66,48 +74,61 @@ class NeutronCosmicDataset:
                 self.neutron_capture_x  = self.neutron['neutron_capture_x']
                 self.neutron_capture_y  = self.neutron['neutron_capture_y']
                 self.neutron_capture_z  = self.neutron['neutron_capture_z']
-                # self.gamma_ids          = self.neutron['gamma_ids']
-                # self.gamma_neutron_ids  = self.neutron['gamma_neutron_ids']
-                # self.gamma_energy       = self.neutron['gamma_energy']
-                # self.edep_energy        = self.neutron['edep_energy']
-                # self.edep_parent        = self.neutron['edep_parent']
-                # self.edep_neutron_ids   = self.neutron['edep_neutron_ids']
-                # self.edep_gamma_ids     = self.neutron['edep_gamma_ids'] 
-                # self.neutron_x          = self.neutron['edep_x']
-                # self.neutron_y          = self.neutron['edep_y']
-                # self.neutron_z          = self.neutron['edep_z']      
-                # self.electron_ids           = self.neutron['electron_ids']
-                # self.electron_neutron_ids   = self.neutron['electron_neutron_ids']
-                # self.electron_gamma_ids     = self.neutron['electron_gamma_ids']
-                # self.electron_energy        = self.neutron['electron_energy']
-                # self.edep_num_electrons     = self.neutron['edep_num_electrons']
+                self.capture            = self.neutron['capture']
+                self.capture_tpc        = self.neutron['capture_tpc']
+                self.capture_tpc_lar    = self.neutron['capture_tpc_lar']
+                self.inelastic          = self.neutron['inelastic']
+                self.total_number_steps = self.neutron['total_number_steps']
+                self.cryo_number_steps  = self.neutron['cryo_number_steps']
+                self.tpc_number_steps   = self.neutron['tpc_number_steps']
+                self.lar_number_steps   = self.neutron['lar_number_steps']
+                self.entered_tpc        = self.neutron['entered_tpc']
+                self.entered_tpc_step   = self.neutron['entered_tpc_step']
+                self.entered_tpc_time   = self.neutron['entered_tpc_time']
+                self.entered_tpc_energy = self.neutron['entered_tpc_energy']
+                self.tpc_avg_material   = self.neutron['tpc_avg_material']
+                self.total_distance     = self.neutron['total_distance']
+                self.cryo_distance      = self.neutron['cryo_distance']
+                self.tpc_distance       = self.neutron['tpc_distance'] 
             except:
                 self.logger.error(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
                 raise ValueError(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
+        if self.load_mc_edeps:
+            try:
+                self.edep_pdg       = self.mc_edeps['pdg']
+                self.edep_track_id  = self.mc_edeps['track_id']
+                self.edep_ancestor  = self.mc_edeps['ancestor_id']
+                self.edep_level     = self.mc_edeps['level']
+                self.edep_x         = self.mc_edeps['edep_x']
+                self.edep_y         = self.mc_edeps['edep_y']
+                self.edep_z         = self.mc_edeps['edep_z']
+                self.edep_energy    = self.mc_edeps['energy']
+                self.edep_electrons = self.mc_edeps['num_electrons']
+            except:
+                self.logger.error(f"One or more of the required arrays {required_mc_edep_arrays} is not present in {self.mc_edeps.keys()}.")
+                raise ValueError(f"One or more of the required arrays {required_mc_edep_arrays} is not present in {self.mc_edeps.keys()}.")
         if self.load_voxels:
             try:
                 self.voxel_coords = self.voxels['voxels']
                 self.voxel_labels = self.voxels['labels']
                 self.voxel_values = self.voxels['energy']
                 self.voxel_edep_idxs = self.voxels['edep_idxs']
-                # self.x_min  = self.voxels['x_min']
-                # self.x_max  = self.voxels['x_max']
-                # self.y_min  = self.voxels['y_min']
-                # self.y_max  = self.voxels['y_max']
-                # self.z_min  = self.voxels['z_min']
-                # self.z_max  = self.voxels['z_max']
-                # self.voxel_size = self.voxels['voxel_size']
-                # self.num_voxels_x   = self.voxels['num_voxels_x']
-                # self.num_voxels_y   = self.voxels['num_voxels_y']
-                # self.num_voxels_z   = self.voxels['num_voxels_z']
-                # self.x_id   = self.voxels['x_id']
-                # self.y_id   = self.voxels['y_id']
-                # self.z_id   = self.voxels['z_id']
-                # self.voxel_values = self.voxels['values']
-                # self.voxel_labels = self.voxels['labels']
             except:
                 self.logger.error(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
                 raise ValueError(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.voxels.keys()}.")
+        if self.load_voxels:
+            try:
+                self.reco_pdg       = self.reco_edeps['pdg']
+                self.reco_track_id  = self.reco_edeps['track_id']
+                self.reco_ancestor  = self.reco_edeps['ancestor_id']
+                self.reco_level     = self.reco_edeps['level']
+                self.reco_x         = self.reco_edeps['sp_x']
+                self.reco_y         = self.reco_edeps['sp_y']
+                self.reco_z         = self.reco_edeps['sp_z']
+                self.reco_energy    = self.reco_edeps['summed_adc']
+            except:
+                self.logger.error(f"One or more of the required arrays {required_reco_edep_arrays} is not present in {self.reco_edeps.keys()}.")
+                raise ValueError(f"One or more of the required arrays {required_reco_edep_arrays} is not present in {self.reco_edeps.keys()}.")
         self.num_events = len(self.neutron_ids)
         self.logger.info(f"Loaded arrays with {self.num_events} entries.")
         if self.load_voxels:
@@ -153,7 +174,7 @@ class NeutronCosmicDataset:
             [[self.cryo_x[1],self.cryo_y[0],self.cryo_z[1]],[self.cryo_x[0],self.cryo_y[0],self.cryo_z[1]]],
             [[self.cryo_x[1],self.cryo_y[1],self.cryo_z[0]],[self.cryo_x[1],self.cryo_y[1],self.cryo_z[1]]],
         ]
-        self.calculate_capture_ratio()
+        #self.calculate_capture_ratio()
 
     # def calculate_capture_ratio(self):
     #     # keep track of the ratio of complete 6.098
@@ -315,195 +336,195 @@ class NeutronCosmicDataset:
     #     if show:
     #         plt.show()
 
-    # def fit_depth_exponential(self,
-    #     num_bins:   int=100,
-    #     save:   str='',
-    #     show:   bool=True
-    # ):
-    #     y_pos = np.concatenate([yi for yi in self.neutron_y]).flatten()
-    #     # normalize positions
-    #     y_max = np.max(y_pos)
-    #     depth = np.abs(y_max - y_pos)
-    #     # fit histogram
-    #     y_hist, y_edges = np.histogram(depth, bins=num_bins)
-    #     hist_sum = sum(y_hist)
-    #     y_hist = y_hist.astype(float) / hist_sum
-    #     # determine cumulative hist
-    #     cum_hist = [y_hist[0]]
-    #     for ii in range(1,len(y_hist)):
-    #         cum_hist.append(y_hist[ii]+cum_hist[-1])
-    #     # arrange mid points for fit
-    #     mid_points = np.array([y_edges[ii] + (y_edges[ii+1]-y_edges[ii])/2. for ii in range(len(y_hist))])
-    #     # fit to logarithm
-    #     exp_fit = sp.optimize.curve_fit(
-    #         lambda t,a,b: a*np.exp(-b*t),   # decaying exponential
-    #         mid_points, 
-    #         y_hist
-    #     )
-    #     exp_function = exp_fit[0][0] * np.exp(-exp_fit[0][1] * mid_points)
-    #     # plot the results
-    #     fig, axs = plt.subplots(figsize=(8,6))
-    #     axs.scatter(mid_points, y_hist, label='hist')
-    #     axs.plot(
-    #         mid_points, 
-    #         exp_function, 
-    #         label=rf'fit ($\sim\exp[-{round(exp_fit[0][1],3)}\, \Delta y]$)'
-    #     )
-    #     axs.set_xlabel(r'depth - $\Delta y$ - (mm)')
-    #     axs.set_ylabel('density (height/sum)')
-    #     plt.legend(loc='center right')
-    #     axs2 = axs.twinx()
-    #     axs2.plot(
-    #         mid_points,
-    #         cum_hist,
-    #     )
-    #     axs2.set_ylabel('cummulative %')
-    #     axs.set_title('Capture density vs. depth (mm)')
-    #     plt.grid(True)
+    def fit_depth_exponential(self,
+        num_bins:   int=100,
+        save:   str='',
+        show:   bool=True
+    ):
+        y_pos = np.concatenate([yi for yi in self.neutron_y]).flatten()
+        # normalize positions
+        y_max = np.max(y_pos)
+        depth = np.abs(y_max - y_pos)
+        # fit histogram
+        y_hist, y_edges = np.histogram(depth, bins=num_bins)
+        hist_sum = sum(y_hist)
+        y_hist = y_hist.astype(float) / hist_sum
+        # determine cumulative hist
+        cum_hist = [y_hist[0]]
+        for ii in range(1,len(y_hist)):
+            cum_hist.append(y_hist[ii]+cum_hist[-1])
+        # arrange mid points for fit
+        mid_points = np.array([y_edges[ii] + (y_edges[ii+1]-y_edges[ii])/2. for ii in range(len(y_hist))])
+        # fit to logarithm
+        exp_fit = sp.optimize.curve_fit(
+            lambda t,a,b: a*np.exp(-b*t),   # decaying exponential
+            mid_points, 
+            y_hist
+        )
+        exp_function = exp_fit[0][0] * np.exp(-exp_fit[0][1] * mid_points)
+        # plot the results
+        fig, axs = plt.subplots(figsize=(8,6))
+        axs.scatter(mid_points, y_hist, label='hist')
+        axs.plot(
+            mid_points, 
+            exp_function, 
+            label=rf'fit ($\sim\exp[-{round(exp_fit[0][1],3)}\, \Delta y]$)'
+        )
+        axs.set_xlabel(r'depth - $\Delta y$ - (mm)')
+        axs.set_ylabel('density (height/sum)')
+        plt.legend(loc='center right')
+        axs2 = axs.twinx()
+        axs2.plot(
+            mid_points,
+            cum_hist,
+        )
+        axs2.set_ylabel('cummulative %')
+        axs.set_title('Capture density vs. depth (mm)')
+        plt.grid(True)
         
-    #     plt.tight_layout()
-    #     if save != '':
-    #         plt.savefig('plots/'+save+'.png')
-    #     if show:
-    #         plt.show()
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
     
-    # def plot_capture_locations(self,
-    #     event:          int,
-    #     plot_type:      str='3d',
-    #     show_active_tpc:bool=True,
-    #     show_cryostat:  bool=True,
-    #     title:  str='Example MC Capture Locations',
-    #     save:   str='',
-    #     show:   bool=True,
-    # ):
-    #     if event >= self.num_events:
-    #         self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
-    #         raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
-    #     if plot_type not in ['3d', 'xy', 'xz', 'yz']:
-    #         self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
-    #         plot_type = '3d'
-    #     if plot_type == '3d':
-    #         fig = plt.figure(figsize=(8,6))
-    #         axs = fig.add_subplot(projection='3d')
-    #         axs.scatter(
-    #             self.neutron_capture_x[event],
-    #             self.neutron_capture_z[event],
-    #             self.neutron_capture_y[event]
-    #         )
-    #         axs.set_xlabel("x (mm)")
-    #         axs.set_ylabel("z (mm)")
-    #         axs.set_zlabel("y (mm)")
-    #         # draw the active tpc volume box
-    #     else:
-    #         fig, axs = plt.subplots(figsize=(8,6))
-    #         if plot_type == 'xz':
-    #             axs.scatter(self.neutron_capture_x[event], self.neutron_capture_z[event])
-    #             axs.set_xlabel("x (mm)")
-    #             axs.set_ylabel("z (mm)")
-    #         elif plot_type == 'yz':
-    #             axs.scatter(self.neutron_capture_y[event], self.neutron_capture_z[event])
-    #             axs.set_xlabel("y (mm)")
-    #             axs.set_ylabel("z (mm)")
-    #         else:
-    #             axs.scatter(self.neutron_capture_x[event], self.neutron_capture_y[event])
-    #             axs.set_xlabel("x (mm)")
-    #             axs.set_ylabel("y (mm)")
-    #     if show_active_tpc:
-    #         for i in range(len(self.active_tpc_lines)):
-    #             x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
-    #             y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
-    #             z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
-    #             if plot_type == '3d':
-    #                 if i == 0:
-    #                     axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
-    #                 else:
-    #                     axs.plot(x,y,z,linestyle='--',color='b')
-    #             elif plot_type == 'xz':
-    #                 if i == 0:
-    #                     axs.plot(x,y,linestyle='--',color='b',label='Active TPC volume')
-    #                 else:
-    #                     axs.plot(x,y,linestyle='--',color='b')
-    #             elif plot_type == 'yz':
-    #                 if i == 0:
-    #                     axs.plot(z,y,linestyle='--',color='b',label='Active TPC volume')
-    #                 else:
-    #                     axs.plot(z,y,linestyle='--',color='b')
-    #             else:
-    #                 if i == 0:
-    #                     axs.plot(x,z,linestyle='--',color='b',label='Active TPC volume')
-    #                 else:
-    #                     axs.plot(x,z,linestyle='--',color='b')
-    #     if show_cryostat:
-    #         for i in range(len(self.cryostat_lines)):
-    #             x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
-    #             y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
-    #             z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
-    #             if plot_type == '3d':
-    #                 if i == 0:
-    #                     axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
-    #                 else:
-    #                     axs.plot(x,y,z,linestyle=':',color='g')
-    #             elif plot_type == 'xz':
-    #                 if i == 0:
-    #                     axs.plot(x,y,linestyle=':',color='g',label='Cryostat volume')
-    #                 else:
-    #                     axs.plot(x,y,linestyle=':',color='g')
-    #             elif plot_type == 'yz':
-    #                 if i == 0:
-    #                     axs.plot(z,y,linestyle=':',color='g',label='Cryostat volume')
-    #                 else:
-    #                     axs.plot(z,y,linestyle=':',color='g')
-    #             else:
-    #                 if i == 0:
-    #                     axs.plot(x,z,linestyle=':',color='g',label='Cryostat volume')
-    #                 else:
-    #                     axs.plot(x,z,linestyle=':',color='g')
-    #     axs.set_title(title)
-    #     plt.legend()
-    #     plt.tight_layout()
-    #     if save != '':
-    #         plt.savefig('plots/'+save+'.png')
-    #     if show:
-    #         plt.show()
+    def plot_capture_locations(self,
+        event:          int,
+        plot_type:      str='3d',
+        show_active_tpc:bool=True,
+        show_cryostat:  bool=True,
+        title:  str='Example MC Capture Locations',
+        save:   str='',
+        show:   bool=True,
+    ):
+        if event >= self.num_events:
+            self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
+            raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
+        if plot_type not in ['3d', 'xy', 'xz', 'yz']:
+            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
+            plot_type = '3d'
+        if plot_type == '3d':
+            fig = plt.figure(figsize=(8,6))
+            axs = fig.add_subplot(projection='3d')
+            axs.scatter(
+                self.neutron_capture_x[event],
+                self.neutron_capture_z[event],
+                self.neutron_capture_y[event]
+            )
+            axs.set_xlabel("x (mm)")
+            axs.set_ylabel("z (mm)")
+            axs.set_zlabel("y (mm)")
+            # draw the active tpc volume box
+        else:
+            fig, axs = plt.subplots(figsize=(8,6))
+            if plot_type == 'xz':
+                axs.scatter(self.neutron_capture_x[event], self.neutron_capture_z[event])
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("z (mm)")
+            elif plot_type == 'yz':
+                axs.scatter(self.neutron_capture_y[event], self.neutron_capture_z[event])
+                axs.set_xlabel("y (mm)")
+                axs.set_ylabel("z (mm)")
+            else:
+                axs.scatter(self.neutron_capture_x[event], self.neutron_capture_y[event])
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("y (mm)")
+        if show_active_tpc:
+            for i in range(len(self.active_tpc_lines)):
+                x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
+                y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
+                z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(x,y,z,linestyle='--',color='b')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(x,y,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(x,y,linestyle='--',color='b')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(z,y,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(z,y,linestyle='--',color='b')
+                else:
+                    if i == 0:
+                        axs.plot(x,z,linestyle='--',color='b',label='Active TPC volume')
+                    else:
+                        axs.plot(x,z,linestyle='--',color='b')
+        if show_cryostat:
+            for i in range(len(self.cryostat_lines)):
+                x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
+                y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
+                z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(x,y,z,linestyle=':',color='g')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(x,y,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(x,y,linestyle=':',color='g')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(z,y,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(z,y,linestyle=':',color='g')
+                else:
+                    if i == 0:
+                        axs.plot(x,z,linestyle=':',color='g',label='Cryostat volume')
+                    else:
+                        axs.plot(x,z,linestyle=':',color='g')
+        axs.set_title(title)
+        plt.legend()
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
 
-    # def plot_capture_density(self,
-    #     plot_type:      str='xy',
-    #     density_type:   str='kde',
-    #     title:  str='Example MC Capture Locations',
-    #     save:   str='',
-    #     show:   bool=True,
-    # ):
-    #     if plot_type not in ['xy', 'xz', 'yz']:
-    #         self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using 'xy'.")
-    #         plot_type = 'xy'
-    #     if density_type not in ['scatter', 'kde', 'hist', 'hex', 'reg', 'resid']:
-    #         self.logger.warning(f"Requested density type {density_type} not allowed, using 'kde'.")
-    #         density_type = 'kde'
-    #     if plot_type == 'xz':
-    #         x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
-    #         y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
-    #     elif plot_type == 'yz':
-    #         x = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
-    #         y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
-    #     else:
-    #         x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
-    #         y = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
-    #     sns.jointplot(x=x, y=y, kind=density_type, palette='crest')
-    #     if plot_type == 'xz':
-    #         plt.xlabel("x (mm)")
-    #         plt.ylabel("z (mm)")
-    #     elif plot_type == 'yz':
-    #         plt.xlabel("y (mm)")
-    #         plt.ylabel("z (mm)")
-    #     else:
-    #         plt.xlabel("x (mm)")
-    #         plt.ylabel("y (mm)")
-    #     plt.title(title)
-    #     plt.tight_layout()
-    #     if save != '':
-    #         plt.savefig('plots/'+save+'.png')
-    #     if show:
-    #         plt.show()
+    def plot_capture_density(self,
+        plot_type:      str='xy',
+        density_type:   str='kde',
+        title:  str='Example MC Capture Locations',
+        save:   str='',
+        show:   bool=True,
+    ):
+        if plot_type not in ['xy', 'xz', 'yz']:
+            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using 'xy'.")
+            plot_type = 'xy'
+        if density_type not in ['scatter', 'kde', 'hist', 'hex', 'reg', 'resid']:
+            self.logger.warning(f"Requested density type {density_type} not allowed, using 'kde'.")
+            density_type = 'kde'
+        if plot_type == 'xz':
+            x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
+            y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
+        elif plot_type == 'yz':
+            x = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
+            y = np.concatenate([zi for zi in self.neutron_capture_z]).flatten()
+        else:
+            x = np.concatenate([xi for xi in self.neutron_capture_x]).flatten()
+            y = np.concatenate([yi for yi in self.neutron_capture_y]).flatten()
+        sns.jointplot(x=x, y=y, kind=density_type, palette='crest')
+        if plot_type == 'xz':
+            plt.xlabel("x (mm)")
+            plt.ylabel("z (mm)")
+        elif plot_type == 'yz':
+            plt.xlabel("y (mm)")
+            plt.ylabel("z (mm)")
+        else:
+            plt.xlabel("x (mm)")
+            plt.ylabel("y (mm)")
+        plt.title(title)
+        plt.tight_layout()
+        if save != '':
+            plt.savefig('plots/'+save+'.png')
+        if show:
+            plt.show()
 
     def generate_unet_training(self,
         output_file:    str

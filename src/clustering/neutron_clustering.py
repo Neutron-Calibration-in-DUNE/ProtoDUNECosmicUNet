@@ -42,6 +42,7 @@ class NeutronClustering(NeutronCosmicDataset):
     """
     def __init__(self,
         input_file,
+        unet_file:  str='',
     ):
         super(NeutronClustering, self).__init__(input_file)
         if not os.path.isdir("clustering/"):
@@ -64,6 +65,25 @@ class NeutronClustering(NeutronCosmicDataset):
             'silhouette':           0.,
         }
         self.cluster_spectrum = []
+        # same for voxels
+        self.truth_voxels_cluster_predictions = []
+        self.truth_voxels_cluster_scores = {
+            'homogeneity':          [],
+            'completeness':         [],
+            'v-measure':            [],
+            'adjusted_rand_index':  [],
+            'adjusted_mutual_info': [],
+            'silhouette':           [],
+        }
+        self.truth_voxels_avg_cluster_scores = {
+            'homogeneity':          0.,
+            'completeness':         0.,
+            'v-measure':            0.,
+            'adjusted_rand_index':  0.,
+            'adjusted_mutual_info': 0.,
+            'silhouette':           0.,
+        }
+        self.cluster_voxels_spectrum = []
 
     # functions involving MC truth clustering
     def cluster_truth(self,
@@ -103,6 +123,42 @@ class NeutronClustering(NeutronCosmicDataset):
         for pos in self.neutron_edep_positions:
             clusterer.fit(pos)
             self.truth_cluster_predictions.append(clusterer.labels_)
+    
+    # functions involving MC truth clustering
+    def cluster_truth_voxels(self,
+        alg:    str='dbscan',
+        params: dict={'eps': 100.,'min_samples': 6},
+    ):
+        """
+        Function for running clustering algorithms on events.
+        The level can be ['neutron','gamma']
+        """
+        if alg not in cluster_params.keys():
+            self.logger.warning(f"Requested algorithm '{alg}' not allowed, using 'dbscan'.")
+            alg = 'dbscan'
+            params = cluster_params['dbscan']
+        # check params
+        for item in params:
+            if item not in cluster_params[alg]:
+                self.logger.error(f"Unrecognized parameter {item} for algorithm {alg}! Available parameters are {cluster_params[alg]}.")
+                raise ValueError(f"Unrecognized parameter {item} for algorithm {alg}! Available parameters are {cluster_params[alg]}.")
+        # run the clustering algorithm
+        self.logger.info(f"Attempting to run clustering algorithm {alg} with parameters {params}.")
+        if alg == 'affinity':
+            clusterer = cluster.AffinityPropagation(**params)
+        elif alg == 'mean_shift':
+            clusterer = cluster.MeanShift(**params)
+        elif alg == 'optics':
+            clusterer = cluster.OPTICS(**params)
+        elif alg == 'gaussian':
+            clusterer = cluster.GaussianMixture(**params)
+        else:
+            clusterer = cluster.DBSCAN(**params)
+        self.truth_cluster_predictions = []
+        for ii, coords in self.voxel_coords:
+            truth_coords = coords[(self.voxel_labels[ii] == 0)]
+            clusterer.fit(truth_coords)
+            self.truth_voxels_cluster_predictions.append(clusterer.labels_)
 
     def calc_truth_scores(self,
         level:  str='neutron',
@@ -133,6 +189,32 @@ class NeutronClustering(NeutronCosmicDataset):
             self.truth_cluster_scores['silhouette'].append(metrics.silhouette_score(self.neutron_edep_positions[ii], pred))
         for item in self.truth_cluster_scores.keys():
             self.truth_avg_cluster_scores[item] = sum(self.truth_cluster_scores[item]) / len(labels)
+        self.logger.info(f"Calculated average scores {self.truth_avg_cluster_scores} for level: {level}.")
+        return self.truth_avg_cluster_scores
+    
+    def calc_truth_voxels_scores(self,
+        level:  str='neutron',
+    ):
+        if self.truth_voxels_cluster_predictions == []:
+            self.logger.error("No predictions have been made, need to run clustering algorithm first!")
+            raise ValueError("No predictions have been made, need to run clustering algorithm first!")
+        if len(self.truth_voxels_cluster_predictions) != self.num_events:
+            self.logger.error(f"Only {len(self.truth_voxels_cluster_predictions)} predictions but {self.num_events} events!")
+            raise ValueError(f"Only {len(self.truth_voxels_cluster_predictions)} predictions but {self.num_events} events!")
+        # clear the scores
+        for item in self.truth_voxels_cluster_scores.keys():
+            self.truth_voxels_cluster_scores[item] = []
+        
+        self.logger.info(f"Attempting to calculate scores on cluster voxel predictions.")
+        for ii, pred in enumerate(self.truth_voxels_cluster_predictions):
+            self.truth_cluster_scores['homogeneity'].append(metrics.homogeneity_score(self.voxel_labels[ii], pred))
+            self.truth_cluster_scores['completeness'].append(metrics.completeness_score(self.voxel_labels[ii], pred))
+            self.truth_cluster_scores['v-measure'].append(metrics.v_measure_score(self.voxel_labels[ii], pred))
+            self.truth_cluster_scores['adjusted_rand_index'].append(metrics.adjusted_rand_score(self.voxel_labels[ii], pred))
+            self.truth_cluster_scores['adjusted_mutual_info'].append(metrics.adjusted_mutual_info_score(self.voxel_labels[ii], pred))
+            self.truth_cluster_scores['silhouette'].append(metrics.silhouette_score(self.neutron_edep_positions[ii], pred))
+        for item in self.truth_cluster_scores.keys():
+            self.truth_avg_cluster_scores[item] = sum(self.truth_cluster_scores[item]) / len(self.voxel_labels)
         self.logger.info(f"Calculated average scores {self.truth_avg_cluster_scores} for level: {level}.")
         return self.truth_avg_cluster_scores
 

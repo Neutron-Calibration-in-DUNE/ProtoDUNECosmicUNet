@@ -8,7 +8,8 @@ import torch
 import torchvision
 import torch.nn as nn
 import sys
-sys.path.append('src/')
+sys.path.append("../src/")
+sys.path.append('../src/cosmic_sparse_unet')
 
 from unet_model import SparseUNet
 from unet_dataset import NeutronUNetDataset
@@ -22,7 +23,10 @@ import numpy as np
 
 # analyze the results
 cosmic_analyzer = UNetAnalyzer(
-    input_file='predictions/protodune_cosmic_voxels_predictions.npz'
+    input_file='predictions/protodune_cosmic_voxels_predictions.npz',
+    source_file='../../neutron_data/protodune_cosmic_voxels_2.root'
 )
-cosmic_analyzer.plot_predictions(5)
-cosmic_analyzer.cluster()
+#cosmic_analyzer.plot_predictions(0)
+cosmic_analyzer.cluster_predictions(
+    level = 'compare'
+)

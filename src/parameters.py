@@ -31,67 +31,61 @@ The "neutron" array should have the following entries:
     edep_num_electrons:     the number of electrons coming out of the IonAndScint simulation for each edep ^^^
 """ 
 required_neutron_arrays = [
-    'event_id',
     'neutron_ids',
+    'primary',
+    'capture',
+    'capture_tpc',
+    'capture_tpc_lar',
+    'inelastic',
+    'total_number_steps',
+    'cryo_number_steps',
+    'tpc_number_steps',
+    'lar_number_steps',
+    'entered_tpc',
+    'entered_tpc_step',
+    'entered_tpc_time',
+    'entered_tpc_energy',
+    'exited_tpc',
+    'exited_tpc_step',
+    'exited_tpc_time',
+    'exited_tpc_energy',
+    'tpc_avg_material',
+    'total_distance',
+    'cryo_distance',
+    'tpc_distance',
     'neutron_capture_x',
     'neutron_capture_y',
     'neutron_capture_z',
-    'gamma_ids',
-    'gamma_neutron_ids',
-    'gamma_energy',
-    'edep_energy',
-    'edep_parent',
-    'edep_neutron_ids',
-    'edep_gamma_ids',
+]
+
+required_mc_edep_arrays = [
+    'pdg',
+    'track_id',
+    'ancestor_id',
+    'level',
     'edep_x',
     'edep_y',
     'edep_z',
-    'electron_ids',
-    'electron_neutron_ids',
-    'electron_gamma_ids',
-    'electron_energy',
-    'edep_num_electrons',
-]
-
-""" 
-The "muon" array should have the following entries:
-    primary_muons:      the number of muons in the event
-    muon_ids:           the track ids of the muons
-    muon_edep_ids:      the track id of the corresponding muon that left the energy deposit
-    muon_edep_energy:   the energy values of each unique deposit
-    muon_edep_num_electrons:    the number of electrons generated from each energy deposit
-    muon_edep_x:        the x position of each edep from muons
-    muon_edep_y:        the y ""
-    muon_edep_z:        the z ""
-"""
-
-required_muon_arrays = [
-    'primary_muons',
-    'muon_ids',
-    'muon_edep_ids',
-    'muon_edep_energy',
-    'muon_edep_num_electrons',
-    'muon_edep_x',
-    'muon_edep_y',
-    'muon_edep_z',
+    'energy',
+    'num_electrons',
 ]
 
 required_voxel_arrays = [
-    "x_min", 
-    "x_max", 
-    "y_min", 
-    "y_max", 
-    "z_min", 
-    "z_max", 
-    "voxel_size", 
-    "num_voxels_x",
-    "num_voxels_y",
-    "num_voxels_z",
-    "x_id", 
-    "y_id", 
-    "z_id", 
-    "values",
-    "labels",
+    'voxels',
+    'labels',
+    'energy',
+    'edep_idxs',
+]
+
+required_reco_edep_arrays = [
+    'pdg',
+    'track_id',
+    'ancestor_id',
+    'level',
+    'sp_x',
+    'sp_y',
+    'sp_z',
+    'summed_adc',
 ]
 
 cluster_params = {
