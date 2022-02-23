@@ -386,6 +386,10 @@ class SparseTrainer:
         saved_predictions = np.empty((1,1))
         saved_events = []
         saved_metrics = []
+        new_saved_coords = []
+        new_saved_feats = []
+        new_saved_labels = []
+        new_saved_predictions = []
         # run through the inference loop
         for ii, data in inference_loop:
             # get the inputs
@@ -418,7 +422,10 @@ class SparseTrainer:
                 #     inference_loss += loss.item() / dataset_loader.num_test_batches
                 # else:
                 #     inference_loss += loss.item() / dataset_loader.num_all_batches
-                
+                new_saved_coords.append(np.delete(coords.cpu().numpy(), 0, 1))
+                new_saved_feats.append(feats.cpu().numpy())
+                new_saved_labels.append(labels.cpu().numpy())
+                new_saved_predictions.append(outputs.F.cpu().numpy())
                 saved_coords = np.concatenate((saved_coords, coords.cpu()))
                 saved_feats  = np.concatenate((saved_feats, feats.cpu()))
                 saved_labels = np.concatenate((saved_labels, labels.cpu()))
@@ -442,10 +449,10 @@ class SparseTrainer:
             np.savez(
                 'predictions/'+output_file,
                 events=saved_events,
-                coords=saved_coords,
-                feats=saved_feats,
-                labels=saved_labels,
-                predictions=saved_predictions,
+                coords=new_saved_coords,
+                feats=new_saved_feats,
+                labels=new_saved_labels,
+                predictions=new_saved_predictions,
                 energy=dataset_loader.dataset.energy,
                 metrics=saved_metrics,
                 metric_names=self.metrics.metric_names,

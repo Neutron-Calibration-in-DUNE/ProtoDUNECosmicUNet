@@ -33,12 +33,14 @@ class UNetAnalyzer:
         self.preds   = input['predictions']
         self.metrics = input['metrics']
         self.metric_names = input['metric_names']
+        self.correct = input['labels']
 
-        if len(np.unique(self.labels)) == 2:
-            # binary classification
-            self.preds = (self.preds > 0.0).astype(int)
-            self.correct = (self.preds == self.labels)
-            self.label_names = ['neutron','cosmic']
+        for event in range(len(self.coords)):
+            if len(np.unique(self.labels[event])) == 2:
+                # binary classification
+                self.preds[event] = (self.preds[event] > 0.0).astype(int)
+                self.correct[event] = (self.preds[event] == self.labels[event])
+                self.label_names = ['neutron','cosmic']
         
         source = uproot.open(source_file, allow_pickle=True)
         self.edeps = source['ana/mc_energy_deposits']
@@ -46,6 +48,7 @@ class UNetAnalyzer:
         self.edep_x = self.edeps['edep_x'].array(library="np")
         self.edep_y = self.edeps['edep_y'].array(library="np")
         self.edep_z = self.edeps['edep_z'].array(library="np")
+        self.edep_energy = self.edeps['energy'].array(library="np")
         self.edep_positions = np.array(
             [
                 np.array([[
@@ -65,15 +68,15 @@ class UNetAnalyzer:
         if event > len(self.events):
             self.logger.error(f"Event ID {event} greater than number of events: {len(self.events)}.")
             return
-        begin = self.events[event][0]
-        end   = self.events[event][1]
-        coords = self.coords[begin:end]
+        coords = self.coords[event]
+        energy = self.energy[event]
         x = coords[:,0]
         y = coords[:,1]
         z = coords[:,2]
-        feats  = self.feats[begin:end]
-        labels = self.labels[begin:end]
-        preds  = self.labels[begin:end]
+        feats  = self.feats[event]
+        labels = self.labels[event]
+        preds  = self.labels[event]
+        print(min(energy))
 
         fig = plt.figure(figsize=(8,6))
         axs_truth = fig.add_subplot(1, 2, 1, projection='3d')
@@ -149,17 +152,21 @@ class UNetAnalyzer:
         self.cluster_preds = []
         # collect variables
         for event in range(len(self.events)):
-            begin = self.events[event][0]
-            end   = self.events[event][1]+1
-            coords = self.coords[begin:end]
-            feats  = self.feats[begin:end]
-            labels = self.labels[begin:end]
-            preds  = self.labels[begin:end]
+            coords = self.coords[event]
+            feats  = self.feats[event]
+            labels = self.labels[event]
+            preds  = self.labels[event]
             edep_idxs = self.edep_idxs[event]
             print(len(coords),len(edep_idxs))
             # get truth spectrum
             truth_coords = coords[(labels == 0)]
-            clusterer.fit(truth_coords)
+            tmp_edeps = np.array(edep_idxs[(labels == 0)])
+            tmp_edeps = [[tmp_edeps[i][j] for j in range(len(tmp_edeps[i]))] for i in range(len(tmp_edeps))]
+            tmp_edeps = [item for sublist in tmp_edeps for item in sublist]
+            edeps = self.edep_positions[event][tmp_edeps]
+            #clusterer.fit(tmp_coords)
+            clusterer.fit(edeps)
+            #clusterer.fit(truth_coords)
             self.cluster_truth.append(clusterer.labels_)
             # get prediction spectrum
             if remove_cosmic:
@@ -182,7 +189,7 @@ class UNetAnalyzer:
             clusters = np.unique(truth)
             for c in clusters:
                 indices = np.where(truth==c)
-                true_energies = sum(self.energy[ii][indices])
+                true_energies = sum(self.edep_energy[ii][indices])
                 if true_energies < energy_cut:
                     truth_spectrum.append(true_energies)  
         # construct prediction spectrum
@@ -190,7 +197,7 @@ class UNetAnalyzer:
             clusters = np.unique(pred)
             for c in clusters:
                 indices = np.where(pred==c)
-                pred_energies = sum(self.energy[ii][indices])
+                pred_energies = sum(self.edep_energy[ii][indices])
                 if pred_energies < energy_cut:
                     prediction_spectrum.append(pred_energies)  
         fig, axs = plt.subplots()

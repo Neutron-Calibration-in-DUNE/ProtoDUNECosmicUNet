@@ -534,6 +534,7 @@ class NeutronCosmicDataset:
             coords= self.voxel_coords,
             feats = self.discrete_voxel_values,
             labels= self.voxel_labels,
-            energy= self.voxel_values
+            energy= self.voxel_values,
+            edep_idxs= self.edep_idxs
         )
         self.logger.info(f"Saved voxel dataset to {output_file}.")
