@@ -23,10 +23,13 @@ import numpy as np
 
 # analyze the results
 cosmic_analyzer = UNetAnalyzer(
+    name='analysis_test',
     input_file='predictions/protodune_cosmic_voxels_predictions.npz',
-    source_file='../../neutron_data/protodune_cosmic_voxels_2.root'
+    source_file='../../neutron_data/protodune_cosmic_voxels_0.root'
 )
-cosmic_analyzer.plot_predictions(0)
+for ii in range(50):
+    cosmic_analyzer.plot_predictions(ii)
 cosmic_analyzer.cluster_predictions(
-    level = 'compare'
+    level = 'compare',
+    save = True
 )

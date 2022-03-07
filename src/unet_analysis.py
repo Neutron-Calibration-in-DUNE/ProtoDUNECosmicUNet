@@ -9,6 +9,7 @@ from unet_logger import UNetLogger
 from sklearn import cluster
 from sklearn import metrics
 import csv
+import os
 
 cluster_params = {
     'affinity':     {'damping': 0.5, 'max_iter': 200},
@@ -20,11 +21,16 @@ cluster_params = {
 class UNetAnalyzer:
 
     def __init__(self,
+        name:       str,
         input_file: str,
         source_file:str,
     ):
         self.logger = UNetLogger('analysis', file_mode='w')
+        self.name = name
+        self.input_file = input_file
         input   = np.load(input_file, allow_pickle=True)
+        if not os.path.isdir(f"plots/{self.name}/events/"):
+            os.makedirs(f"plots/{self.name}/events/")
         self.events  = input['events']
         self.coords  = input['coords']
         self.feats   = input['feats']
@@ -64,6 +70,8 @@ class UNetAnalyzer:
         
     def plot_predictions(self,
         event:  int,
+        save:   bool=True,
+        show:   bool=False,
     ):
         if event > len(self.events):
             self.logger.error(f"Event ID {event} greater than number of events: {len(self.events)}.")
@@ -76,7 +84,6 @@ class UNetAnalyzer:
         feats  = self.feats[event]
         labels = self.labels[event]
         preds  = self.labels[event]
-        print(min(energy))
 
         fig = plt.figure(figsize=(8,6))
         axs_truth = fig.add_subplot(1, 2, 1, projection='3d')
@@ -108,7 +115,10 @@ class UNetAnalyzer:
             title_str += f'\n{metric}: {self.metrics[event][ii]}'
         plt.suptitle(title_str)
         plt.tight_layout()
-        plt.show()
+        if save:
+            plt.savefig(f'plots/{self.name}/events/pred_{event}.png')
+        if show:
+            plt.show()
 
     def cluster_predictions(self,
         level:      str='truth',
@@ -119,7 +129,7 @@ class UNetAnalyzer:
         energy_cut: float=10.,   # MeV
         title:      str='Example Prediction Spectrum',
         save:       str='',
-        show:       bool=True,
+        show:       bool=False,
     ):
         """
         Function for running clustering algorithms on events.
@@ -157,7 +167,6 @@ class UNetAnalyzer:
             labels = self.labels[event]
             preds  = self.labels[event]
             edep_idxs = self.edep_idxs[event]
-            print(len(coords),len(edep_idxs))
             # get truth spectrum
             truth_coords = coords[(labels == 0)]
             tmp_edeps = np.array(edep_idxs[(labels == 0)])
@@ -210,8 +219,8 @@ class UNetAnalyzer:
         axs.set_title(title)
         plt.legend()
         plt.tight_layout()
-        if save != '':
-            plt.savefig('plots/'+save+'.png')
+        if save:
+            plt.savefig('plots/{self.name}/cluster_predictions.png')
         if show:
             plt.show()
         
