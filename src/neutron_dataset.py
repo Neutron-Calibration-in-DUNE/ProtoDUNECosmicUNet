@@ -57,92 +57,49 @@ class NeutronCosmicDataset:
         if not os.path.isdir(f"plots/{self.name}/events/"):
             os.makedirs(f"plots/{self.name}/events/")
         # now load the various arrays
-        self.meta       = self.load_array(self.input_file, 'ana/meta')
-        self.geometry   = self.load_array(self.input_file, 'ana/geometry')
+        self.meta = self.load_array(self.input_file, 'ana/meta')
+        self.geometry = self.load_array(self.input_file, 'ana/geometry')
         if load_neutrons:
-            self.neutron    = self.load_array(self.input_file, 'ana/mc_neutron_captures')
+            self.neutron = self.load_array(self.input_file, 'ana/mc_neutron_captures')
+            for item in required_neutron_arrays:
+                if item not in self.neutron.keys():
+                    self.logger.info(f"Required array {item} not present in mc_neutron_captures!")
+                    raise ValueError(f"Required array {item} not present in mc_neutron_captures!")
+            self.num_neutron_events = len(self.neutron['neutron_capture_x'])
+            self.logger.info(f"Loaded 'neutron' arrays with {self.num_neutron_events} entries.")
         if load_mc_edeps:
-            self.mc_edeps   = self.load_array(self.input_file, 'ana/mc_energy_deposits')
+            self.mc_edeps = self.load_array(self.input_file, 'ana/mc_energy_deposits')
+            for item in required_mc_edep_arrays:
+                if item not in self.mc_edeps.keys():
+                    self.logger.info(f"Required array {item} not present in mc_energy_deposits!")
+                    raise ValueError(f"Required array {item} not present in mc_energy_deposits!")
+            self.num_mc_edep_events = len(self.mc_edeps['pdg'])
+            self.logger.info(f"Loaded 'mc_energy_deposits' arrays with {self.num_mc_edep_events} entries.")
         if load_mc_voxels:
-            self.mc_voxels  = self.load_array(self.input_file, 'ana/mc_voxels')
+            self.mc_voxels = self.load_array(self.input_file, 'ana/mc_voxels')
+            for item in required_voxel_arrays:
+                if item not in self.mc_voxels.keys():
+                    self.logger.info(f"Required array {item} not present in mc_voxels!")
+                    raise ValueError(f"Required array {item} not present in mc_voxels!")
+            self.num_mc_voxel_events = len(self.mc_voxels['voxels'])
+            self.discrete_voxel_values = [
+                [[1.] for i in range(len(self.mc_voxels['voxels'][i]))] 
+                    for i in range(len(self.mc_voxels['voxels']))
+                ]
+            self.logger.info(f"Loaded 'mc_voxels' arrays with {self.num_mc_voxel_events} entries.")
         if load_reco_edeps:
             self.reco_edeps = self.load_array(self.input_file, 'ana/reco_energy_deposits')
 
-        # construct truth info
-        # each index in these arrays correspond to an event
-        if self.load_neutrons:
-            try:
-                self.neutron_ids        = self.neutron['neutron_ids']
-                self.neutron_capture_x  = self.neutron['neutron_capture_x']
-                self.neutron_capture_y  = self.neutron['neutron_capture_y']
-                self.neutron_capture_z  = self.neutron['neutron_capture_z']
-                self.capture            = self.neutron['capture']
-                self.capture_tpc        = self.neutron['capture_tpc']
-                self.capture_tpc_lar    = self.neutron['capture_tpc_lar']
-                self.inelastic          = self.neutron['inelastic']
-                self.total_number_steps = self.neutron['total_number_steps']
-                self.cryo_number_steps  = self.neutron['cryo_number_steps']
-                self.tpc_number_steps   = self.neutron['tpc_number_steps']
-                self.lar_number_steps   = self.neutron['lar_number_steps']
-                self.entered_tpc        = self.neutron['entered_tpc']
-                self.entered_tpc_step   = self.neutron['entered_tpc_step']
-                self.entered_tpc_time   = self.neutron['entered_tpc_time']
-                self.entered_tpc_energy = self.neutron['entered_tpc_energy']
-                self.tpc_avg_material   = self.neutron['tpc_avg_material']
-                self.total_distance     = self.neutron['total_distance']
-                self.cryo_distance      = self.neutron['cryo_distance']
-                self.tpc_distance       = self.neutron['tpc_distance'] 
-            except:
-                self.logger.error(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
-                raise ValueError(f"One or more of the required arrays {required_neutron_arrays} is not present in {self.neutron.keys()}.")
-        if self.load_mc_edeps:
-            try:
-                self.edep_pdg       = self.mc_edeps['pdg']
-                self.edep_track_id  = self.mc_edeps['track_id']
-                self.edep_ancestor  = self.mc_edeps['ancestor_id']
-                self.edep_level     = self.mc_edeps['level']
-                self.edep_x         = self.mc_edeps['edep_x']
-                self.edep_y         = self.mc_edeps['edep_y']
-                self.edep_z         = self.mc_edeps['edep_z']
-                self.edep_energy    = self.mc_edeps['energy']
-                self.edep_electrons = self.mc_edeps['num_electrons']
-            except:
-                self.logger.error(f"One or more of the required arrays {required_mc_edep_arrays} is not present in {self.mc_edeps.keys()}.")
-                raise ValueError(f"One or more of the required arrays {required_mc_edep_arrays} is not present in {self.mc_edeps.keys()}.")
-        if self.load_mc_voxels:
-            try:
-                self.voxel_coords = self.mc_voxels['voxels']
-                self.voxel_labels = self.mc_voxels['labels']
-                self.voxel_values = self.mc_voxels['energy']
-                self.voxel_edep_idxs = self.mc_voxels['edep_idxs']
-            except:
-                self.logger.error(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.mc_voxels.keys()}.")
-                raise ValueError(f"One or more of the required arrays {required_voxel_arrays} is not present in {self.mc_voxels.keys()}.")
-        if self.load_reco_edeps:
-            try:
-                self.reco_pdg       = self.reco_edeps['pdg']
-                self.reco_track_id  = self.reco_edeps['track_id']
-                self.reco_ancestor  = self.reco_edeps['ancestor_id']
-                self.reco_level     = self.reco_edeps['level']
-                self.reco_x         = self.reco_edeps['sp_x']
-                self.reco_y         = self.reco_edeps['sp_y']
-                self.reco_z         = self.reco_edeps['sp_z']
-                self.reco_energy    = self.reco_edeps['summed_adc']
-            except:
-                self.logger.error(f"One or more of the required arrays {required_reco_edep_arrays} is not present in {self.reco_edeps.keys()}.")
-                raise ValueError(f"One or more of the required arrays {required_reco_edep_arrays} is not present in {self.reco_edeps.keys()}.")
-        self.num_events = len(self.voxel_coords)
-        self.logger.info(f"Loaded arrays with {self.num_events} entries.")
-        if self.load_mc_voxels:
-            self.discrete_voxel_values = [
-                [[1.] for i in range(len(self.voxel_values[i]))] 
-                    for i in range(len(self.voxel_values))
-                ]
+            
         # construct TPC boxes
+        self.world_box_ranges = self.geometry['world_box_ranges']
+        self.world_x = [self.world_box_ranges[0][0], self.world_box_ranges[0][1]]
+        self.world_y = [self.world_box_ranges[0][4], self.world_box_ranges[0][5]]
+        self.world_z = [self.world_box_ranges[0][2], self.world_box_ranges[0][3]]
         self.total_tpc_ranges = self.geometry['total_active_tpc_box_ranges']
         self.tpc_x = [self.total_tpc_ranges[0][0], self.total_tpc_ranges[0][1]]
-        self.tpc_y = [self.total_tpc_ranges[0][4], self.total_tpc_ranges[0][5]]
-        self.tpc_z = [self.total_tpc_ranges[0][2], self.total_tpc_ranges[0][3]]
+        self.tpc_y = [self.total_tpc_ranges[0][2], self.total_tpc_ranges[0][3]]
+        self.tpc_z = [self.total_tpc_ranges[0][4], self.total_tpc_ranges[0][5]]
         self.active_tpc_lines = [
             [[self.tpc_x[0],self.tpc_y[0],self.tpc_z[0]],[self.tpc_x[1],self.tpc_y[0],self.tpc_z[0]]],
             [[self.tpc_x[0],self.tpc_y[0],self.tpc_z[0]],[self.tpc_x[0],self.tpc_y[1],self.tpc_z[0]]],
@@ -160,8 +117,8 @@ class NeutronCosmicDataset:
         # cryostat boundary
         self.total_cryo_ranges = self.geometry['cryostat_box_ranges']
         self.cryo_x = [self.total_cryo_ranges[0][0], self.total_cryo_ranges[0][1]]
-        self.cryo_y = [self.total_cryo_ranges[0][4], self.total_cryo_ranges[0][5]]
-        self.cryo_z = [self.total_cryo_ranges[0][2], self.total_cryo_ranges[0][3]]
+        self.cryo_y = [self.total_cryo_ranges[0][2], self.total_cryo_ranges[0][3]]
+        self.cryo_z = [self.total_cryo_ranges[0][4], self.total_cryo_ranges[0][5]]
         self.cryostat_lines = [
             [[self.cryo_x[0],self.cryo_y[0],self.cryo_z[0]],[self.cryo_x[1],self.cryo_y[0],self.cryo_z[0]]],
             [[self.cryo_x[0],self.cryo_y[0],self.cryo_z[0]],[self.cryo_x[0],self.cryo_y[1],self.cryo_z[0]]],
@@ -176,28 +133,7 @@ class NeutronCosmicDataset:
             [[self.cryo_x[1],self.cryo_y[0],self.cryo_z[1]],[self.cryo_x[0],self.cryo_y[0],self.cryo_z[1]]],
             [[self.cryo_x[1],self.cryo_y[1],self.cryo_z[0]],[self.cryo_x[1],self.cryo_y[1],self.cryo_z[1]]],
         ]
-        #self.calculate_capture_ratio()
-
-    # def calculate_capture_ratio(self):
-    #     # keep track of the ratio of complete 6.098
-    #     # captures vs total.
-    #     self.logger.info(f"Attempting to calculate capture ratio.")
-    #     self.num_complete_captures = []
-    #     self.num_captures = []
-    #     # loop through all edeps
-    #     for ii, truth in enumerate(self.edep_neutron_ids):
-    #         complete = 0
-    #         total = 0
-    #         clusters = np.unique(truth)
-    #         for cluster in clusters:
-    #             indices = np.where(truth==cluster)
-    #             true_energies = sum(self.edep_energy[ii][indices])
-    #             total += 1
-    #             if round(true_energies,2) == 6.1:
-    #                 complete += 1
-    #         self.num_captures.append(total)
-    #         self.num_complete_captures.append(complete)
-    #     self.capture_ratio = round((sum(self.num_complete_captures)/sum(self.num_captures))*100)
+        self.calculate_capture_ratio()
 
     def load_array(self,
         input_file,
@@ -212,131 +148,624 @@ class NeutronCosmicDataset:
             raise Exception
         return array
 
-    # def plot_event(self,
-    #     event,
-    #     title:  str='',
-    #     show_active_tpc: bool=True,
-    #     show_cryostat:   bool=True,
-    #     save:   str='',
-    #     show:   bool=True,
-    # ):
-    #     if event >= self.num_events:
-    #         self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
-    #         raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
-    #     fig = plt.figure(figsize=(8,6))
-    #     axs = fig.add_subplot(projection='3d')
-    #     if self.load_neutrons:
-    #         axs.scatter3D(
-    #             self.neutron_x[event], 
-    #             self.neutron_z[event], 
-    #             self.neutron_y[event], 
-    #             label='neutrons', 
-    #         )
-    #     if self.load_muons:
-    #         axs.scatter3D(
-    #             self.muon_edep_x[event],
-    #             self.muon_edep_z[event], 
-    #             self.muon_edep_y[event], 
-    #             label='cosmics', 
-    #         )
-    #     axs.set_xlabel("x (mm)")
-    #     axs.set_ylabel("z (mm)")
-    #     axs.set_zlabel("y (mm)")
-    #     axs.set_title(title)
-    #     # draw the active tpc volume box
-    #     if show_active_tpc:
-    #         for i in range(len(self.active_tpc_lines)):
-    #             x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
-    #             y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
-    #             z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
-    #             if i == 0:
-    #                 axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
-    #             else:
-    #                 axs.plot(x,y,z,linestyle='--',color='b')
-    #     if show_cryostat:
-    #         for i in range(len(self.cryostat_lines)):
-    #             x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
-    #             y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
-    #             z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
-    #             if i == 0:
-    #                 axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
-    #             else:
-    #                 axs.plot(x,y,z,linestyle=':',color='g')
-    #     plt.legend()
-    #     plt.tight_layout()
-    #     if save != '':
-    #         plt.savefig('plots/'+save+'.png')
-    #     if show:
-    #         plt.show()
+    """
+    The following functions are for plotting and analyzing
+    neutron captures, whose data products are stored in 
+    self.neutron.
+    """
+    def plot_capture_locations(self,
+        event:          int,
+        plot_type:      str='3d',
+        capture_location:str='tpc',
+        show_active_tpc:bool=True,
+        show_cryostat:  bool=True,
+        title:          str='Example MC Capture Locations',
+        save:           bool=True,
+        show:           bool=False,
+    ):
+        """
+        
+        """
+        if self.load_neutrons == False:
+            self.logger.error(f"Dataset does not have 'neutron' products loaded! (i.e. 'self.load_neutrons' = {self.load_neutrons})")
+            raise ValueError(f"Dataset does not have 'neutron' products loaded! (i.e. 'self.load_neutrons' = {self.load_neutrons})")
+        if event >= self.num_neutron_events:
+            self.logger.error(f"Tried accessing element {event} of array with size {self.num_neutron_events}!")
+            raise IndexError(f"Tried accessing element {event} of array with size {self.num_neutron_events}!")
+        if plot_type not in ['3d', 'xy', 'xz', 'yz']:
+            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
+            plot_type = '3d'
+        if capture_location not in ['world', 'cryostat', 'tpc']:
+            self.logger.warning(f"Requested capture location '{capture_location}' not allowed, using 'tpc'.")
+            capture_location = 'tpc'
+        # gather x, y, z values
+        x = self.neutron['neutron_capture_x'][event]
+        y = self.neutron['neutron_capture_y'][event]
+        z = self.neutron['neutron_capture_z'][event]
+        num_neutrons = len(x)
+        if capture_location == 'world':
+            mask = (
+                (x < self.world_x[1]) & (x > self.world_x[0]) &
+                (y < self.world_y[1]) & (y > self.world_y[0]) &
+                (z < self.world_z[1]) & (z > self.world_z[0])
+            )
+        elif capture_location == 'cryostat':
+            mask = (
+                (x < self.cryo_x[1]) & (x > self.cryo_x[0]) &
+                (y < self.cryo_y[1]) & (y > self.cryo_y[0]) &
+                (z < self.cryo_z[1]) & (z > self.cryo_z[0])
+            )
+        else:
+            mask = (
+                (x < self.tpc_x[1]) & (x > self.tpc_x[0]) &
+                (y < self.tpc_y[1]) & (y > self.tpc_y[0]) &
+                (z < self.tpc_z[1]) & (z > self.tpc_z[0])
+            )
+        x = x[mask]
+        y = y[mask]
+        z = z[mask]
+        if plot_type == '3d':
+            fig = plt.figure(figsize=(8,6))
+            axs = fig.add_subplot(projection='3d')
+            axs.scatter(x, z, y)
+            axs.set_xlabel("x (mm)")
+            axs.set_ylabel("z (mm)")
+            axs.set_zlabel("y (mm)")
+            # draw the active tpc volume box
+        else:
+            fig, axs = plt.subplots(figsize=(8,6))
+            if plot_type == 'xz':
+                axs.scatter(x, z)
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("z (mm)")
+            elif plot_type == 'yz':
+                axs.scatter(y, z)
+                axs.set_xlabel("y (mm)")
+                axs.set_ylabel("z (mm)")
+            else:
+                axs.scatter(x, y)
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("y (mm)")
+        if show_active_tpc:
+            for i in range(len(self.active_tpc_lines)):
+                x = np.array([
+                    self.active_tpc_lines[i][0][0],
+                    self.active_tpc_lines[i][1][0]
+                ])
+                y = np.array([
+                    self.active_tpc_lines[i][0][1],
+                    self.active_tpc_lines[i][1][1]
+                ])
+                z = np.array([
+                    self.active_tpc_lines[i][0][2],
+                    self.active_tpc_lines[i][1][2]
+                ])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(
+                            x,z,y,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(x,z,y,linestyle='--',color='b')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(
+                            x,z,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(x,z,linestyle='--',color='b')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(
+                            y,z,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(y,z,linestyle='--',color='b')
+                else:
+                    if i == 0:
+                        axs.plot(
+                            x,y,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(x,y,linestyle='--',color='b')
+        if show_cryostat:
+            for i in range(len(self.cryostat_lines)):
+                x = np.array([
+                    self.cryostat_lines[i][0][0],
+                    self.cryostat_lines[i][1][0]
+                ])
+                y = np.array([
+                    self.cryostat_lines[i][0][1],
+                    self.cryostat_lines[i][1][1]
+                ])
+                z = np.array([
+                    self.cryostat_lines[i][0][2],
+                    self.cryostat_lines[i][1][2]
+                ])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(
+                            x,z,y,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(x,z,y,linestyle=':',color='g')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(
+                            x,z,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(x,z,linestyle=':',color='g')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(
+                            y,z,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(y,z,linestyle=':',color='g')
+                else:
+                    if i == 0:
+                        axs.plot(
+                            x,y,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(x,y,linestyle=':',color='g')
+        axs.set_title(title)
+        plt.legend()
+        plt.tight_layout()
+        if save:
+            plt.savefig(f'plots/{self.name}/events/capture_{plot_type}_{event}.png')
+        if show:
+            plt.show()
+
+    def calculate_capture_ratio(self):
+        # keep track of the ratio of complete 6.098
+        # captures vs total.
+        if self.load_mc_edeps == False:
+            return
+        self.logger.info(f"Attempting to calculate capture ratio.")
+        self.num_complete_captures = []
+        self.num_captures = []
+        # loop through all edeps
+        for ii, pdgs in enumerate(self.mc_edeps['pdg']):
+            complete = 0
+            total = 0
+            truth = self.mc_edeps['ancestor_id'][ii][(pdgs == 2112)]
+            clusters = np.unique(truth)
+            for cluster in clusters:
+                indices = np.where(truth == cluster)
+                true_energies = sum(self.mc_edeps['energy'][ii][indices])
+                total += 1
+                if round(true_energies,2) == 6.1:
+                    complete += 1
+            self.num_captures.append(total)
+            self.num_complete_captures.append(complete)
+        self.capture_ratio = round((sum(self.num_complete_captures)/sum(self.num_captures))*100)
     
-    # def plot_event_neutrons(self,
-    #     event,
-    #     label:  str='neutron',  # plot by neutron, gamma, electron
-    #     title:  str='',
-    #     legend_cutoff:  int=10, # only show the first N labels in the legend (gets crammed easily)
-    #     show_active_tpc: bool=True,
-    #     show_cryostat:   bool=True,
-    #     save:   str='',
-    #     show:   bool=True,
-    # ):
-    #     if event >= self.num_events:
-    #         self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
-    #         raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
-    #     if label not in ['neutron', 'gamma']:
-    #         self.logger.warning(f"Requested labeling by '{label}' not allowed, using 'neutron'.")
-    #         label = 'neutron'
-    #     fig = plt.figure(figsize=(8,6))
-    #     axs = fig.add_subplot(projection='3d')
-    #     x, y, z, ids, energy = [], [], [], [], []
-    #     indices = []
-    #     if label == 'neutron':
-    #         labels = np.unique(self.edep_neutron_ids[event])
-    #         for ii, value in enumerate(labels):
-    #             indices.append(np.where(self.edep_neutron_ids[event] == value))
-    #     else:
-    #         labels = np.unique(self.edep_gamma_ids[event])
-    #         for ii, value in enumerate(labels):
-    #             indices.append(np.where(self.edep_gamma_ids[event] == value))
-    #     for ii, value in enumerate(labels):
-    #         x.append([self.neutron_x[event][indices[ii]]])
-    #         y.append([self.neutron_z[event][indices[ii]]])
-    #         z.append([self.neutron_y[event][indices[ii]]])
-    #         energy.append([1000*self.edep_energy[event][indices[ii]]])
-    #         ids.append(f'{label} {ii}: (id: {value}, energy: {round(sum(self.edep_energy[event][indices[ii]]),4)} MeV)')
-    #     for jj in range(len(x)):
-    #         if jj < legend_cutoff:
-    #             axs.scatter3D(x[jj], y[jj], z[jj], label=ids[jj], s=energy[jj])
-    #         else:
-    #             axs.scatter3D(x[jj], y[jj], z[jj], s=energy[jj])
-    #     axs.set_xlabel("x (mm)")
-    #     axs.set_ylabel("z (mm)")
-    #     axs.set_zlabel("y (mm)")
-    #     axs.set_title(title)
-    #     # draw the active tpc volume box
-    #     if show_active_tpc:
-    #         for i in range(len(self.active_tpc_lines)):
-    #             x = np.array([self.active_tpc_lines[i][0][0],self.active_tpc_lines[i][1][0]])
-    #             y = np.array([self.active_tpc_lines[i][0][1],self.active_tpc_lines[i][1][1]])
-    #             z = np.array([self.active_tpc_lines[i][0][2],self.active_tpc_lines[i][1][2]])
-    #             if i == 0:
-    #                 axs.plot(x,y,z,linestyle='--',color='b',label='Active TPC volume')
-    #             else:
-    #                 axs.plot(x,y,z,linestyle='--',color='b')
-    #     if show_cryostat:
-    #         for i in range(len(self.cryostat_lines)):
-    #             x = np.array([self.cryostat_lines[i][0][0],self.cryostat_lines[i][1][0]])
-    #             y = np.array([self.cryostat_lines[i][0][1],self.cryostat_lines[i][1][1]])
-    #             z = np.array([self.cryostat_lines[i][0][2],self.cryostat_lines[i][1][2]])
-    #             if i == 0:
-    #                 axs.plot(x,y,z,linestyle=':',color='g',label='Cryostat volume')
-    #             else:
-    #                 axs.plot(x,y,z,linestyle=':',color='g')
-    #     plt.legend()
-    #     plt.tight_layout()
-    #     if save != '':
-    #         plt.savefig('plots/'+save+'.png')
-    #     if show:
-    #         plt.show()
+    def plot_mc_edep_locations(self,
+        event,
+        plot_type:      str='3d',
+        capture_location:str='tpc',
+        show_active_tpc:bool=True,
+        show_cryostat:  bool=True,
+        title:          str='Example MC Edep Locations',
+        save:           bool=True,
+        show:           bool=False,
+    ):
+        if self.load_mc_edeps == False:
+            self.logger.error(f"Dataset does not have 'mc_energy_deposits' products loaded! (i.e. 'self.load_mc_edeps' = {self.load_mc_edeps})")
+            raise ValueError(f"Dataset does not have 'mc_energy_deposits' products loaded! (i.e. 'self.load_mc_edeps' = {self.load_mc_edeps})")
+        if event >= self.num_mc_edep_events:
+            self.logger.error(f"Tried accessing element {event} of array with size {self.num_mc_edep_events}!")
+            raise IndexError(f"Tried accessing element {event} of array with size {self.num_mc_edep_events}!")
+        if plot_type not in ['3d', 'xy', 'xz', 'yz']:
+            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
+            plot_type = '3d'
+        if capture_location not in ['world', 'cryostat', 'tpc']:
+            self.logger.warning(f"Requested capture location '{capture_location}' not allowed, using 'tpc'.")
+            capture_location = 'tpc'
+        # gather x, y, z values
+        x = self.mc_edeps['edep_x'][event]
+        y = self.mc_edeps['edep_y'][event]
+        z = self.mc_edeps['edep_z'][event]
+        if capture_location == 'world':
+            mask = (
+                (x < self.world_x[1]) & (x > self.world_x[0]) &
+                (y < self.world_y[1]) & (y > self.world_y[0]) &
+                (z < self.world_z[1]) & (z > self.world_z[0])
+            )
+        elif capture_location == 'cryostat':
+            mask = (
+                (x < self.cryo_x[1]) & (x > self.cryo_x[0]) &
+                (y < self.cryo_y[1]) & (y > self.cryo_y[0]) &
+                (z < self.cryo_z[1]) & (z > self.cryo_z[0])
+            )
+        else:
+            mask = (
+                (x < self.tpc_x[1]) & (x > self.tpc_x[0]) &
+                (y < self.tpc_y[1]) & (y > self.tpc_y[0]) &
+                (z < self.tpc_z[1]) & (z > self.tpc_z[0])
+            )
+        x = x[mask]
+        y = y[mask]
+        z = z[mask]
+        energy = self.mc_edeps['energy'][event][mask]
+        pdg = self.mc_edeps['pdg'][event][mask]
+        unique_pdgs = np.unique(pdg)
+        unique_x = []
+        unique_y = []
+        unique_z = []
+        unique_energy = []
+        for item in unique_pdgs:
+            unique_x.append(x[(pdg == item)])
+            unique_y.append(y[(pdg == item)])
+            unique_z.append(z[(pdg == item)])
+            unique_energy.append(energy[(pdg == item)])
+        if plot_type == '3d':
+            fig = plt.figure(figsize=(8,6))
+            axs = fig.add_subplot(projection='3d')
+            for ii in range(len(unique_pdgs)):
+                axs.scatter(
+                    unique_x[ii], 
+                    unique_z[ii], 
+                    unique_y[ii],
+                    label=f'{pdg_map[str(unique_pdgs[ii])]}',
+                    s=20 * unique_energy[ii]
+                )
+            axs.set_xlabel("x (mm)")
+            axs.set_ylabel("z (mm)")
+            axs.set_zlabel("y (mm)")
+            # draw the active tpc volume box
+        else:
+            fig, axs = plt.subplots(figsize=(8,6))
+            if plot_type == 'xz':
+                for ii in range(len(unique_pdgs)):
+                    axs.scatter(
+                        unique_x[ii], 
+                        unique_z[ii], 
+                        label=f'{pdg_map[str(unique_pdgs[ii])]}',
+                        s=20 * unique_energy[ii]
+                    )
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("z (mm)")
+            elif plot_type == 'yz':
+                for ii in range(len(unique_pdgs)):
+                    axs.scatter(
+                        unique_y[ii],
+                        unique_z[ii],
+                        label=f'{pdg_map[str(unique_pdgs[ii])]}',
+                        s=20 * unique_energy[ii]
+                    )
+                axs.set_xlabel("y (mm)")
+                axs.set_ylabel("z (mm)")
+            else:
+                for ii in range(len(unique_pdgs)):
+                    axs.scatter(
+                        unique_x[ii], 
+                        unique_y[ii],
+                        label=f'{pdg_map[str(unique_pdgs[ii])]}',
+                        s=20 * unique_energy[ii]
+                    )
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("y (mm)")
+        if show_active_tpc:
+            for i in range(len(self.active_tpc_lines)):
+                x = np.array([
+                    self.active_tpc_lines[i][0][0],
+                    self.active_tpc_lines[i][1][0]
+                ])
+                y = np.array([
+                    self.active_tpc_lines[i][0][1],
+                    self.active_tpc_lines[i][1][1]
+                ])
+                z = np.array([
+                    self.active_tpc_lines[i][0][2],
+                    self.active_tpc_lines[i][1][2]
+                ])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(
+                            x,z,y,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(x,z,y,linestyle='--',color='b')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(
+                            x,z,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(x,z,linestyle='--',color='b')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(
+                            y,z,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(y,z,linestyle='--',color='b')
+                else:
+                    if i == 0:
+                        axs.plot(
+                            x,y,
+                            linestyle='--',color='b',
+                            label='Active TPC volume'
+                        )
+                    else:
+                        axs.plot(x,y,linestyle='--',color='b')
+        if show_cryostat:
+            for i in range(len(self.cryostat_lines)):
+                x = np.array([
+                    self.cryostat_lines[i][0][0],
+                    self.cryostat_lines[i][1][0]
+                ])
+                y = np.array([
+                    self.cryostat_lines[i][0][1],
+                    self.cryostat_lines[i][1][1]
+                ])
+                z = np.array([
+                    self.cryostat_lines[i][0][2],
+                    self.cryostat_lines[i][1][2]
+                ])
+                if plot_type == '3d':
+                    if i == 0:
+                        axs.plot(
+                            x,z,y,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(x,z,y,linestyle=':',color='g')
+                elif plot_type == 'xz':
+                    if i == 0:
+                        axs.plot(
+                            x,z,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(x,z,linestyle=':',color='g')
+                elif plot_type == 'yz':
+                    if i == 0:
+                        axs.plot(
+                            y,z,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(y,z,linestyle=':',color='g')
+                else:
+                    if i == 0:
+                        axs.plot(
+                            x,y,
+                            linestyle=':',color='g',
+                            label='Cryostat volume'
+                        )
+                    else:
+                        axs.plot(x,y,linestyle=':',color='g')
+        axs.set_title(title)
+        plt.legend()
+        plt.tight_layout()
+        if save:
+            plt.savefig(f'plots/{self.name}/events/mc_edep_{plot_type}_{event}.png')
+        if show:
+            plt.show()
+
+    def plot_mc_voxel_locations(self,
+        event,
+        plot_type:      str='3d',
+        capture_location:str='tpc',
+        show_active_tpc:bool=True,
+        show_cryostat:  bool=True,
+        title:          str='Example MC Voxel Locations',
+        save:           bool=True,
+        show:           bool=False,
+    ):
+        if self.load_mc_voxels == False:
+            self.logger.error(f"Dataset does not have 'mc_energy_deposits' products loaded! (i.e. 'self.load_mc_voxels' = {self.load_mc_voxels})")
+            raise ValueError(f"Dataset does not have 'mc_energy_deposits' products loaded! (i.e. 'self.load_mc_voxels' = {self.load_mc_voxels})")
+        if event >= self.num_mc_voxel_events:
+            self.logger.error(f"Tried accessing element {event} of array with size {self.num_mc_voxel_events}!")
+            raise IndexError(f"Tried accessing element {event} of array with size {self.num_mc_voxel_events}!")
+        if plot_type not in ['3d', 'xy', 'xz', 'yz']:
+            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
+            plot_type = '3d'
+        if capture_location not in ['world', 'cryostat', 'tpc']:
+            self.logger.warning(f"Requested capture location '{capture_location}' not allowed, using 'tpc'.")
+            capture_location = 'tpc'
+        # gather x, y, z values
+        voxels = self.mc_voxels['voxels'][event]
+        x = np.array([voxel[0] for voxel in voxels])
+        y = np.array([voxel[1] for voxel in voxels])
+        z = np.array([voxel[2] for voxel in voxels])
+        labels = np.array(self.mc_voxels['labels'][event])
+        energy = self.mc_voxels['energy'][event]
+        edep_idxs = self.mc_voxels['edep_idxs'][event]
+        unique_labels = np.unique(labels)
+        unique_x = []
+        unique_y = []
+        unique_z = []
+        unique_energy = []
+        for item in unique_labels:
+            unique_x.append(x[(labels == item)])
+            unique_y.append(y[(labels == item)])
+            unique_z.append(z[(labels == item)])
+            unique_energy.append(energy[(labels == item)])
+        if plot_type == '3d':
+            fig = plt.figure(figsize=(8,6))
+            axs = fig.add_subplot(projection='3d')
+            for ii in range(len(unique_labels)):
+                axs.scatter(
+                    unique_x[ii], 
+                    unique_z[ii], 
+                    unique_y[ii],
+                    label=f'{unique_labels[ii]}',
+                    #s=20 * unique_energy[ii]
+                )
+            axs.set_xlabel("x (mm)")
+            axs.set_ylabel("z (mm)")
+            axs.set_zlabel("y (mm)")
+            # draw the active tpc volume box
+        else:
+            fig, axs = plt.subplots(figsize=(8,6))
+            if plot_type == 'xz':
+                for ii in range(len(unique_labels)):
+                    axs.scatter(
+                        unique_x[ii], 
+                        unique_z[ii], 
+                        label=f'{unique_labels[ii]}',
+                        #s=20 * unique_energy[ii]
+                    )
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("z (mm)")
+            elif plot_type == 'yz':
+                for ii in range(len(unique_labels)):
+                    axs.scatter(
+                        unique_y[ii],
+                        unique_z[ii],
+                        label=f'{unique_labels[ii]}',
+                        #s=20 * unique_energy[ii]
+                    )
+                axs.set_xlabel("y (mm)")
+                axs.set_ylabel("z (mm)")
+            else:
+                for ii in range(len(unique_labels)):
+                    axs.scatter(
+                        unique_x[ii], 
+                        unique_y[ii],
+                        label=f'{unique_labels[ii]}',
+                        #s=20 * unique_energy[ii]
+                    )
+                axs.set_xlabel("x (mm)")
+                axs.set_ylabel("y (mm)")
+        # if show_active_tpc:
+        #     for i in range(len(self.active_tpc_lines)):
+        #         x = np.array([
+        #             self.active_tpc_lines[i][0][0],
+        #             self.active_tpc_lines[i][1][0]
+        #         ])
+        #         y = np.array([
+        #             self.active_tpc_lines[i][0][1],
+        #             self.active_tpc_lines[i][1][1]
+        #         ])
+        #         z = np.array([
+        #             self.active_tpc_lines[i][0][2],
+        #             self.active_tpc_lines[i][1][2]
+        #         ])
+        #         if plot_type == '3d':
+        #             if i == 0:
+        #                 axs.plot(
+        #                     x,z,y,
+        #                     linestyle='--',color='b',
+        #                     label='Active TPC volume'
+        #                 )
+        #             else:
+        #                 axs.plot(x,z,y,linestyle='--',color='b')
+        #         elif plot_type == 'xz':
+        #             if i == 0:
+        #                 axs.plot(
+        #                     x,z,
+        #                     linestyle='--',color='b',
+        #                     label='Active TPC volume'
+        #                 )
+        #             else:
+        #                 axs.plot(x,z,linestyle='--',color='b')
+        #         elif plot_type == 'yz':
+        #             if i == 0:
+        #                 axs.plot(
+        #                     y,z,
+        #                     linestyle='--',color='b',
+        #                     label='Active TPC volume'
+        #                 )
+        #             else:
+        #                 axs.plot(y,z,linestyle='--',color='b')
+        #         else:
+        #             if i == 0:
+        #                 axs.plot(
+        #                     x,y,
+        #                     linestyle='--',color='b',
+        #                     label='Active TPC volume'
+        #                 )
+        #             else:
+        #                 axs.plot(x,y,linestyle='--',color='b')
+        # if show_cryostat:
+        #     for i in range(len(self.cryostat_lines)):
+        #         x = np.array([
+        #             self.cryostat_lines[i][0][0],
+        #             self.cryostat_lines[i][1][0]
+        #         ])
+        #         y = np.array([
+        #             self.cryostat_lines[i][0][1],
+        #             self.cryostat_lines[i][1][1]
+        #         ])
+        #         z = np.array([
+        #             self.cryostat_lines[i][0][2],
+        #             self.cryostat_lines[i][1][2]
+        #         ])
+        #         if plot_type == '3d':
+        #             if i == 0:
+        #                 axs.plot(
+        #                     x,z,y,
+        #                     linestyle=':',color='g',
+        #                     label='Cryostat volume'
+        #                 )
+        #             else:
+        #                 axs.plot(x,z,y,linestyle=':',color='g')
+        #         elif plot_type == 'xz':
+        #             if i == 0:
+        #                 axs.plot(
+        #                     x,z,
+        #                     linestyle=':',color='g',
+        #                     label='Cryostat volume'
+        #                 )
+        #             else:
+        #                 axs.plot(x,z,linestyle=':',color='g')
+        #         elif plot_type == 'yz':
+        #             if i == 0:
+        #                 axs.plot(
+        #                     y,z,
+        #                     linestyle=':',color='g',
+        #                     label='Cryostat volume'
+        #                 )
+        #             else:
+        #                 axs.plot(y,z,linestyle=':',color='g')
+        #         else:
+        #             if i == 0:
+        #                 axs.plot(
+        #                     x,y,
+        #                     linestyle=':',color='g',
+        #                     label='Cryostat volume'
+        #                 )
+        #             else:
+        #                 axs.plot(x,y,linestyle=':',color='g')
+        axs.set_title(title)
+        plt.legend()
+        plt.tight_layout()
+        if save:
+            plt.savefig(f'plots/{self.name}/events/mc_voxels_{plot_type}_{event}.png')
+        if show:
+            plt.show()
 
     def fit_depth_exponential(self,
         num_bins:   int=100,
@@ -344,8 +773,10 @@ class NeutronCosmicDataset:
         show:       bool=False
     ):
         y_pos = np.concatenate(
-            [yi for yi in self.neutron_y]
+            [yi for yi in self.neutron['neutron_capture_y']]
         ).flatten()
+        mask = ((y_pos < self.tpc_y[1]) & (y_pos > self.tpc_y[0]))
+        y_pos = y_pos[mask]
         # normalize positions
         y_max = np.max(y_pos)
         depth = np.abs(y_max - y_pos)
@@ -380,7 +811,7 @@ class NeutronCosmicDataset:
         axs1.set_xlabel(r'depth - $\Delta y$ - (mm)')
         axs1.set_ylabel('density (height/sum)')
         plt.legend(loc='center right')
-        axs2 = axs.twinx()
+        axs2 = axs1.twinx()
         axs2.plot(
             mid_points,
             cum_hist,
@@ -395,206 +826,70 @@ class NeutronCosmicDataset:
         if show:
             plt.show()
     
-    def plot_capture_locations(self,
-        event:          int,
-        plot_type:      str='3d',
-        show_active_tpc:bool=True,
-        show_cryostat:  bool=True,
-        title:          str='Example MC Capture Locations',
-        save:           bool=True,
-        show:           bool=False,
-    ):
-        if event >= self.num_events:
-            self.logger.error(f"Tried accessing element {event} of array with size {self.num_events}!")
-            raise IndexError(f"Tried accessing element {event} of array with size {self.num_events}!")
-        if plot_type not in ['3d', 'xy', 'xz', 'yz']:
-            self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using '3d'.")
-            plot_type = '3d'
-        if plot_type == '3d':
-            fig = plt.figure(figsize=(8,6))
-            axs = fig.add_subplot(projection='3d')
-            axs.scatter(
-                self.neutron_capture_x[event],
-                self.neutron_capture_z[event],
-                self.neutron_capture_y[event]
-            )
-            axs.set_xlabel("x (mm)")
-            axs.set_ylabel("z (mm)")
-            axs.set_zlabel("y (mm)")
-            # draw the active tpc volume box
-        else:
-            fig, axs = plt.subplots(figsize=(8,6))
-            if plot_type == 'xz':
-                axs.scatter(
-                    self.neutron_capture_x[event], 
-                    self.neutron_capture_z[event]
-                )
-                axs.set_xlabel("x (mm)")
-                axs.set_ylabel("z (mm)")
-            elif plot_type == 'yz':
-                axs.scatter(
-                    self.neutron_capture_y[event], 
-                    self.neutron_capture_z[event]
-                )
-                axs.set_xlabel("y (mm)")
-                axs.set_ylabel("z (mm)")
-            else:
-                axs.scatter(
-                    self.neutron_capture_x[event], 
-                    self.neutron_capture_y[event]
-                )
-                axs.set_xlabel("x (mm)")
-                axs.set_ylabel("y (mm)")
-        if show_active_tpc:
-            for i in range(len(self.active_tpc_lines)):
-                x = np.array([
-                    self.active_tpc_lines[i][0][0],
-                    self.active_tpc_lines[i][1][0]
-                ])
-                y = np.array([
-                    self.active_tpc_lines[i][0][1],
-                    self.active_tpc_lines[i][1][1]
-                ])
-                z = np.array([
-                    self.active_tpc_lines[i][0][2],
-                    self.active_tpc_lines[i][1][2]
-                ])
-                if plot_type == '3d':
-                    if i == 0:
-                        axs.plot(
-                            x,y,z,
-                            linestyle='--',color='b',
-                            label='Active TPC volume'
-                        )
-                    else:
-                        axs.plot(x,y,z,linestyle='--',color='b')
-                elif plot_type == 'xz':
-                    if i == 0:
-                        axs.plot(
-                            x,y,
-                            linestyle='--',color='b',
-                            label='Active TPC volume'
-                        )
-                    else:
-                        axs.plot(x,y,linestyle='--',color='b')
-                elif plot_type == 'yz':
-                    if i == 0:
-                        axs.plot(
-                            z,y,
-                            linestyle='--',color='b',
-                            label='Active TPC volume'
-                        )
-                    else:
-                        axs.plot(z,y,linestyle='--',color='b')
-                else:
-                    if i == 0:
-                        axs.plot(
-                            x,z,
-                            linestyle='--',color='b',
-                            label='Active TPC volume'
-                        )
-                    else:
-                        axs.plot(x,z,linestyle='--',color='b')
-        if show_cryostat:
-            for i in range(len(self.cryostat_lines)):
-                x = np.array([
-                    self.cryostat_lines[i][0][0],
-                    self.cryostat_lines[i][1][0]
-                ])
-                y = np.array([
-                    self.cryostat_lines[i][0][1],
-                    self.cryostat_lines[i][1][1]
-                ])
-                z = np.array([
-                    self.cryostat_lines[i][0][2],
-                    self.cryostat_lines[i][1][2]
-                ])
-                if plot_type == '3d':
-                    if i == 0:
-                        axs.plot(
-                            x,y,z,
-                            linestyle=':',color='g',
-                            label='Cryostat volume'
-                        )
-                    else:
-                        axs.plot(x,y,z,linestyle=':',color='g')
-                elif plot_type == 'xz':
-                    if i == 0:
-                        axs.plot(
-                            x,y,
-                            linestyle=':',color='g',
-                            label='Cryostat volume'
-                        )
-                    else:
-                        axs.plot(x,y,linestyle=':',color='g')
-                elif plot_type == 'yz':
-                    if i == 0:
-                        axs.plot(
-                            z,y,
-                            linestyle=':',color='g',
-                            label='Cryostat volume'
-                        )
-                    else:
-                        axs.plot(z,y,linestyle=':',color='g')
-                else:
-                    if i == 0:
-                        axs.plot(
-                            x,z,
-                            linestyle=':',color='g',
-                            label='Cryostat volume'
-                        )
-                    else:
-                        axs.plot(x,z,linestyle=':',color='g')
-        axs.set_title(title)
-        plt.legend()
-        plt.tight_layout()
-        if save:
-            plt.savefig(f'plots/{self.name}/events/capture_{event}.png')
-        if show:
-            plt.show()
-
     def plot_capture_density(self,
         plot_type:      str='xy',
         density_type:   str='kde',
+        capture_location:str='tpc',
         title:  str='Example MC Capture Locations',
         save:   bool=True,
         show:   bool=False,
     ):
+        if self.load_neutrons == False:
+            self.logger.error(f"Dataset does not have 'neutron' products loaded! (i.e. 'self.load_neutrons' = {self.load_neutrons})")
+            raise ValueError(f"Dataset does not have 'neutron' products loaded! (i.e. 'self.load_neutrons' = {self.load_neutrons})")
         if plot_type not in ['xy', 'xz', 'yz']:
             self.logger.warning(f"Requested plot type '{plot_type}' not allowed, using 'xy'.")
             plot_type = 'xy'
         if density_type not in ['scatter', 'kde', 'hist', 'hex', 'reg', 'resid']:
             self.logger.warning(f"Requested density type {density_type} not allowed, using 'kde'.")
             density_type = 'kde'
-        if plot_type == 'xz':
-            x = np.concatenate([
-                xi for xi in self.neutron_capture_x
-            ]).flatten()
-            y = np.concatenate([
-                zi for zi in self.neutron_capture_z
-            ]).flatten()
-        elif plot_type == 'yz':
-            x = np.concatenate([
-                yi for yi in self.neutron_capture_y
-            ]).flatten()
-            y = np.concatenate([
-                zi for zi in self.neutron_capture_z
-            ]).flatten()
+        if capture_location not in ['world', 'cryostat', 'tpc']:
+            self.logger.warning(f"Requested capture location '{capture_location}' not allowed, using 'tpc'.")
+            capture_location = 'tpc'
+        # gather x, y, z values
+        x = self.neutron['neutron_capture_x']
+        y = self.neutron['neutron_capture_y']
+        z = self.neutron['neutron_capture_z']
+        x = np.concatenate([
+            xi for xi in x
+        ]).flatten()
+        y = np.concatenate([
+            yi for yi in y
+        ]).flatten()
+        z = np.concatenate([
+            zi for zi in z
+        ]).flatten()
+        if capture_location == 'world':
+            mask = (
+                (x < self.world_x[1]) & (x > self.world_x[0]) &
+                (y < self.world_y[1]) & (y > self.world_y[0]) &
+                (z < self.world_z[1]) & (z > self.world_z[0])
+            )
+        elif capture_location == 'cryostat':
+            mask = (
+                (x < self.cryo_x[1]) & (x > self.cryo_x[0]) &
+                (y < self.cryo_y[1]) & (y > self.cryo_y[0]) &
+                (z < self.cryo_z[1]) & (z > self.cryo_z[0])
+            )
         else:
-            x = np.concatenate([
-                xi for xi in self.neutron_capture_x
-            ]).flatten()
-            y = np.concatenate([
-                yi for yi in self.neutron_capture_y
-            ]).flatten()
-        sns.jointplot(x=x, y=y, kind=density_type, palette='crest')
+            mask = (
+                (x < self.tpc_x[1]) & (x > self.tpc_x[0]) &
+                (y < self.tpc_y[1]) & (y > self.tpc_y[0]) &
+                (z < self.tpc_z[1]) & (z > self.tpc_z[0])
+            )
+        x = x[mask]
+        y = y[mask]
+        z = z[mask]
         if plot_type == 'xz':
+            sns.jointplot(x=x, y=z, kind=density_type, palette='crest')
             plt.xlabel("x (mm)")
             plt.ylabel("z (mm)")
         elif plot_type == 'yz':
+            sns.jointplot(x=y, y=z, kind=density_type, palette='crest')
             plt.xlabel("y (mm)")
             plt.ylabel("z (mm)")
         else:
+            sns.jointplot(x=x, y=y, kind=density_type, palette='crest')
             plt.xlabel("x (mm)")
             plt.ylabel("y (mm)")
         plt.title(title)
@@ -609,10 +904,10 @@ class NeutronCosmicDataset:
     ):
         self.logger.info(f"Attempting to generate voxel dataset {output_file}.")
         np.savez(output_file,
-            coords= self.voxel_coords,
+            coords= self.mc_voxels['voxels'],
             feats = self.discrete_voxel_values,
-            labels= self.voxel_labels,
-            energy= self.voxel_values,
-            edep_idxs= self.voxel_edep_idxs
+            labels= self.mc_voxels['labels'],
+            energy= self.mc_voxels['energy'],
+            edep_idxs= self.mc_voxels['edep_idxs'],
         )
         self.logger.info(f"Saved voxel dataset to {output_file}.")

@@ -95,3 +95,11 @@ cluster_params = {
     'optics':       {'min_samples': 6},
     'gaussian':     {'n_components': 1, 'covariance_type': 'full', 'tol': 1e-3, 'reg_covar': 1e-6, 'max_iter': 100}
 }
+
+pdg_map = {
+    '11':   'electron',
+    '13':   'muon',
+    '22':   'gamma',
+    '2112': 'neutron',
+    '2212': 'proton'
+}
